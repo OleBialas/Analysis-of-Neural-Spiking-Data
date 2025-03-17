@@ -1,0 +1,11 @@
+[project]
+name = "analysis-of-neural-spiking-data"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dandi>=0.66.7",
+    "elephant>=1.1.1",
+    "pynwb>=2.8.3",
+]
