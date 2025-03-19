@@ -7,5 +7,11 @@ requires-python = ">=3.10"
 dependencies = [
     "dandi>=0.66.7",
     "elephant>=1.1.1",
+    "ipython>=8.34.0",
+    "jupyter-cache>=1.0.1",
+    "matplotlib>=3.10.1",
+    "pandas>=2.2.3",
     "pynwb>=2.8.3",
+    "quantities>=0.16.1",
+    "scipy>=1.15.2",
 ]
