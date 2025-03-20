@@ -9,10 +9,9 @@ from sklearn.decomposition import PCA
 Load data from the previous notebook
 ```{python}
 waveforms = np.load("spike_waveforms.npy")
-spikes = pd.read_csv("spike_time.csv")
 ```
 
-## Feature Extraction
+## Finding the correct number of features
 
 Initialize `PCA` to extract `n_components`
 ```{python}
@@ -35,14 +34,16 @@ for i_ch in range(n_channels):
     var_explained[:,i_ch] = pca.explained_variance_ratio_
 ```
 
-## Finding the correct number of features
 
 Plot the explained variance
 ```{python}
 plt.plot(range(1, n_components+1), var_explained, marker="o")
 plt.xlabel("Component Number")
 plt.ylabel("Explained Variance Ratio")
+plt.show()
 ```
+
+## Extract and save features
 
 Based on the plot, we can see that 3 components account for most (~80%) of the variance in the data. Now, we extract three components
 ```{python}
@@ -53,6 +54,11 @@ pca_features = np.zeros((n_spikes, n_components, n_channels))
 for i_ch in range(n_channels):
     X = waveforms[:,:,i_ch].T
     pca_features[:,:,i_ch] = pca.fit_transform(X)
+```
+
+Save the pca features
+```{python}
+np.save("pca_features.npy", pca_features)
 ```
 
 ## Visualization

@@ -114,13 +114,20 @@ for c_t in crossing_times:
     spike_times.append(spike_time)
 ```
 
+Save the spike times to a data frame
+```{python}
+spike_times = list(set(spike_times)) # remove duplicates
+spike_times = pd.DataFrame(columns=["Time"], data=spike_times)
+spike_times.to_csv("spike_times.csv", index=False)
+```
+
+
 Finally, we convert the spike times to a continuous time series by creating a `Series` that has the same time index as our data frame where all values are `False`. Then we set the values at our spike times to `True` and save the resulting data frame.
 
 ```{python}
 spikes = pd.Series(False, index=df.index)
 spikes.loc[spike_times] = True
 print(f"Found {spikes.sum()} spikes")
-spikes[spikes].to_csv("spike_times.csv", index=False)
 ```
 
 Visualize the spike times

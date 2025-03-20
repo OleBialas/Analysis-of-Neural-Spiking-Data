@@ -1,0 +1,125 @@
+```{python}
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.mixture import GaussianMixture
+```
+
+Load PCA features and reshape to a 2D matrix
+
+```{python}
+pca_features = np.load("pca_features.npy")
+n_spikes, n_features, n_channels = pca_features.shape
+X = pca_features.reshape(-1, n_features*n_channels, order="F")
+```
+
+## Find the correct number of clusters
+
+Run `GaussianMixture` with different number of clusters and compute BIC. To make things go faster, we only take the first 1000 spikes
+
+```{python}
+n_components_range = range(2, 20+1)
+bic_scores = []
+for n_components in n_components_range:
+    gmm = GaussianMixture(
+        n_components=n_components,
+        covariance_type='full',  # Using full covariance matrix
+        random_state=42,
+        n_init=10,
+        max_iter=100
+    )
+    gmm.fit(X[:1000])
+    bic_scores.append(gmm.bic(X))
+    print(f"Components: {n_components}, BIC: {gmm.bic(X):.2f}, AIC: {gmm.aic(X):.2f}")
+```
+
+Plot the BIC over the number of clusters
+
+```{python}
+plt.plot(n_components_range, bic_scores)
+plt.xlabel("Number of Clusters")
+plt.ylabel("BIC")
+plt.show()
+```
+
+Load and plot the precomputed BIC scores for the whole data
+
+```{python}
+bic_scores = np.load("bic_scores.npy")
+plt.plot(n_components_range, bic_scores)
+plt.xlabel("Number of Clusters")
+plt.ylabel("BIC")
+plt.show()
+```
+
+Get the number of clusters that yields the lowest BIC
+
+```{python}
+idx_min = np.argmin(bic_scores)
+n_components = n_components_range[idx_min]
+print(f"lowest BIC score with {n_components} components")
+```
+
+## Predict cluster labels
+
+Fit the model with the optimal number of clusters and predict spike labels and their probabilities
+
+```{python}
+best_gmm = GaussianMixture(
+    n_components=n_components,
+    random_state=42,
+    n_init=10
+)
+best_gmm.fit(X)
+spike_labels = best_gmm.predict(X)
+spike_probs = best_gmm.predict_proba(X)
+```
+
+We can add the spike labels to our data frame of spike times
+
+```{python}
+df = pd.read_csv("spike_times.csv")
+df["Cluster"] = spike_labels
+df["Probability"] = 0.0
+for i_c in np.unique(spike_labels):
+    idx = np.where(spike_labels==i_c)[0]
+    probs = spike_probs[idx, i_c]
+    df.iloc[idx, 2] = probs
+df.to_csv("spike_clusters.csv", index=False)
+```
+
+
+```{python}
+print(f"Number of spikes in each cluster:")
+for i in range(n_components):
+    print(f"Cluster {i+1}: {np.sum(spike_labels == i)} spikes")
+
+for i in range(n_components):
+    cluster_probs = spike_probs[spike_labels == i, i]
+    print(f"Cluster {i+1}: Mean probability = {np.mean(cluster_probs):.3f}, Min = {np.min(cluster_probs):.3f}")
+```
+
+## Visualize the clustered waveforms
+
+```{python}
+waveforms = np.load("spike_waveforms.npy")
+```
+
+Plot the first 5 clusters 
+```{python}
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+fig, ax = plt.subplots(5,4, sharex=True, sharey="row")
+for i_cluster in range(1, 5+1):
+    cluster_waveforms = waveforms[:, df["Cluster"]==i_cluster, :] 
+    for i_ch in range(4):
+        ax[0, i_ch].set(title=f"Ch{i_ch+1}")
+        ax[i_cluster-1,i_ch].plot(cluster_waveforms[:,:100,i_ch], linewidth=0.2, color=colors[i_cluster])
+        ax[i_cluster-1,i_ch].plot(cluster_waveforms[:,:,i_ch].mean(axis=1), linewidth=1.5, color="black")
+
+for axis in ax.flatten():
+    for spine in axis.spines.values():
+        spine.set_visible(False)
+        axis.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+plt.subplots_adjust(wspace=0.1, hspace=0)
+plt.show()
+```

@@ -1,2 +1,3 @@
 05_indentifying_spikes/spike_times.csv
 05_indentifying_spikes/spike_waveforms.npy
+06_feature_extraction/pca_features.npy
