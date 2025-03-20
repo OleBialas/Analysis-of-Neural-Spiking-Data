@@ -1,0 +1,179 @@
+```{python}
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+from scipy import signal
+```
+
+## Raw Data
+
+Load the raw recordings
+
+```{python}
+df = pd.read_parquet("tetrode_recordings", columns=["Ch1", "Ch2", "Ch3", "Ch4"])
+```
+
+Create a vector of time points and add it to the data frame and use it as index.
+
+```{python}
+Fs = 30000  # sampling rate in Hz
+t = np.linspace(0, len(df)/Fs, len(df))
+df["Time"] = t
+df = df.set_index("Time")
+```
+
+Plot a segment of raw data
+
+```{python}
+tmin, tmax = 0, 3
+fig, ax = plt.subplots(4, sharey=True, sharex=True)
+for i, ch in enumerate(df.columns):
+    data = df[ch].loc[tmin:tmax]
+    ax[i].plot(data.index, data)
+    ax[i].set(title=ch, ylabel="Voltage [$\\mu$V]")
+ax[-1].set(xlabel="Time [s]", xlim=(tmin, tmax))
+plt.show()
+```
+
+## Filtering
+
+Create a filter that extracts the band containing most of the spike's power.
+
+```{python}
+low, high = 500, 4000
+order = 6
+b, a = signal.butter(order, [low, high], btype = 'bandpass', fs = Fs)
+```
+
+Plot the filter's frequency response
+
+```{python}
+w, h = signal.freqz(b, a, fs=Fs)
+plt.plot(w, np.abs(h), label='Filter')
+plt.axvline(low, color='red', label='Lower band cutoff')
+plt.axvline(high, color='green', label='Upper band cutoff')
+plt.xlabel("Frequency [Hz]")
+plt.ylabel("Gain")
+plt.show()
+```
+
+Extract a numpy array, filter it and put it back into the data frame.
+Copy the data frame and convert the type because filtering returns floats.
+
+```{python}
+df_filt = df.copy().astype(float)
+x = df_filt.to_numpy()
+x = signal.filtfilt(b,a,x, axis=0)
+df_filt.iloc[:] = x
+```
+
+Plot a segment of the filtered data.
+
+```{python}
+tmin, tmax = 0, 3
+fig, ax = plt.subplots(4, sharey=True, sharex=True)
+for i, ch in enumerate(df_filt.columns):
+    data = df_filt[ch].loc[tmin:tmax]
+    ax[i].plot(data.index, data)
+    ax[i].set(title=ch, ylabel="Voltage [$\\mu$V]")
+ax[-1].set(xlabel="Time [s]", xlim=(tmin, tmax))
+plt.show()
+```
+
+## Detect Spikes
+
+Estimate the noise level `sigma` and set the threshold for spikes to `b` times `sigma`.
+The threshold must be negative because spikes appear as hyperpolarization in extracellular recordings.
+
+```{python}
+b = 5
+sigma = np.median(np.abs(x-x.mean(axis=0))/0.6745, axis=0)
+threshold = -1*(np.mean(x, axis=0) + b * sigma)
+```
+
+To detect spikes, we find the points where any of the four channels exceeds the threshold.
+The, we convert to integers and take the difference.
+The resulting array is 1 when the signal goes from above to below the threshold and -1 when it goes back down below.
+Finally we select all points where the difference is 1 because we only need one point per spike.
+
+```{python}
+is_spike = (df_filt<threshold).any(axis=1)
+is_spike = is_spike.astype(int)
+crossings = is_spike.diff()==1
+crossing_times = is_spike[crossings].index
+```
+
+To determine the actual spike times, we go trough all `crossing_times` and extract the data in the `window` after the crossing. Then we `stack()` that data and find the spike time as the index of the minimum across all channels.
+
+```{python}
+window = 2*1e-3
+spike_times = []
+for c_t in crossing_times:
+    data = df.loc[c_t:c_t+window]
+    spike_time = data.stack().idxmin()[0]
+    spike_times.append(spike_time)
+```
+
+Finally, we convert the spike times to a continuous time series by creating a `Series` that has the same time index as our data frame where all values are `False`. Then we set the values at our spike times to `True` and save the resulting data frame.
+
+```{python}
+spikes = pd.Series(False, index=df.index)
+spikes.loc[spike_times] = True
+print(f"Found {spikes.sum()} spikes")
+spikes.to_csv("spike_times.csv")
+```
+
+Visualize the spike times
+
+```{python}
+tmin, tmax = 0.025, 0.075
+fig, ax = plt.subplots(4, sharey=True, sharex=True)
+for i, ch in enumerate(df_filt.columns):
+    data = df_filt[ch].loc[tmin:tmax]
+    s = spikes.loc[tmin:tmax]
+    ax[i].plot(data.index, data, linewidth=0.5)
+    ax[i].plot(data.index[s],data[s],'r.')
+    ax[i].set(title=ch, ylabel="Voltage [$\\mu$V]")
+ax[-1].set(xlabel="Time [s]", xlim=(tmin, tmax))
+plt.show()
+```
+
+## Extract spike waveforms
+
+Now we want to get the spike waveforms by extracting the signal within a certain `window` around the time of each spike's peak. For this, we first create an array to store the waveforms.
+
+```{python}
+window = 0.5*1e-3
+n_spikes = spikes.sum()
+n_chs = len(df_filt.columns)
+n_times = int(window*Fs)*2 
+waveforms = np.zeros((n_times, n_spikes, n_chs))
+```
+
+Now we loop through the spike times and extract the signal within the `window` for each spike. We save the result to a numpy array
+```{python}
+spike_times = spikes[spikes].index
+for i, i_s in enumerate(spike_times):
+    waveforms[:,i,:] = df_filt.loc[i_s-window:i_s+window+1/Fs]
+np.save("spike_waveforms.npy", waveforms)
+```
+
+Plot the first 100 waveforms for all channels.
+```{python}
+t = np.linspace(-window,+window,n_times)*1e3
+fig, ax = plt.subplots(2,2, sharex=True, sharey=True)
+for i, (axis, ch) in enumerate(zip(ax.flatten(), df_filt.columns)):
+    axis.plot(t, waveforms[:,1:100,i],'k', linewidth=1)
+    axis.set(xlim=(-0.5, 0.5), ylim=(-500, 250), xlabel="Time [ms]", ylabel="Voltage [$\\mu$V]", title=ch)
+plt.show()
+```
+
+Plot the 5 largest waveforms.
+```{python}
+idx = np.argsort(np.min(np.min(waveforms,axis=2),axis=0))
+fig, ax = plt.subplots(2,2, sharex=True, sharey=True)
+for i, (axis, ch) in enumerate(zip(ax.flatten(), df_filt.columns)):
+    axis.plot(t, waveforms[:,idx[:100],i], "k", linewidth=0.5)
+    axis.set(xlim=(-0.5, 0.5), ylim=(-1000, 500), xlabel="Time [ms]", ylabel="Voltage [$\\mu$V]", title=ch)
+plt.show()
+```
