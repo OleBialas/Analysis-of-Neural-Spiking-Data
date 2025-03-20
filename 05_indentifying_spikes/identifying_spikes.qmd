@@ -120,7 +120,7 @@ Finally, we convert the spike times to a continuous time series by creating a `S
 spikes = pd.Series(False, index=df.index)
 spikes.loc[spike_times] = True
 print(f"Found {spikes.sum()} spikes")
-spikes.to_csv("spike_times.csv")
+spikes[spikes].to_csv("spike_times.csv", index=False)
 ```
 
 Visualize the spike times

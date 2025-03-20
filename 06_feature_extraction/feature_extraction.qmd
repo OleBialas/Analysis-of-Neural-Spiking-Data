@@ -1,0 +1,72 @@
+
+```{python}
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
+```
+
+Load data from the previous notebook
+```{python}
+waveforms = np.load("spike_waveforms.npy")
+spikes = pd.read_csv("spike_time.csv")
+```
+
+## Feature Extraction
+
+Initialize `PCA` to extract `n_components`
+```{python}
+n_components = 10
+pca = PCA(n_components=n_components)
+```
+
+Create arrays to store PCA features and explained variance
+```{python}
+n_spikes, n_channels = waveforms.shape[1], waveforms.shape[-1]
+pca_features = np.zeros((n_spikes, n_components, n_channels))
+var_explained = np.zeros((n_components, n_channels))
+```
+
+For each channel, apply PCA and extract features. PCA expects the data to be organized samples-by-features so we have to transpose the matrix first.
+```{python}
+for i_ch in range(n_channels):
+    X = waveforms[:,:,i_ch].T
+    pca_features[:,:,i_ch] = pca.fit_transform(X)
+    var_explained[:,i_ch] = pca.explained_variance_ratio_
+```
+
+## Finding the correct number of features
+
+Plot the explained variance
+```{python}
+plt.plot(range(1, n_components+1), var_explained, marker="o")
+plt.xlabel("Component Number")
+plt.ylabel("Explained Variance Ratio")
+```
+
+Based on the plot, we can see that 3 components account for most (~80%) of the variance in the data. Now, we extract three components
+```{python}
+n_components = 3
+pca = PCA(n_components=n_components)
+n_spikes, n_channels = waveforms.shape[1], waveforms.shape[-1]
+pca_features = np.zeros((n_spikes, n_components, n_channels))
+for i_ch in range(n_channels):
+    X = waveforms[:,:,i_ch].T
+    pca_features[:,:,i_ch] = pca.fit_transform(X)
+```
+
+## Visualization
+
+Plot the first PC for all combinations of channels
+```{python}
+fig, ax = plt.subplots(2,3)
+p = 0
+labels = ['Ch1','Ch2','Ch3','Ch4']
+for i in np.arange(0,4):
+    for j in np.arange(i+1,4):
+        axis = ax.flatten()[p]
+        axis.plot(pca_features[:,0, i], pca_features[:,0, j],'.k', markersize=.7) 
+        axis.set(xlabel=labels[i], ylabel=labels[j], xlim=(-1500,1500), ylim=(-1500, 1500), xticks=[], yticks=[])
+        p = p+1
+plt.show()
+```
