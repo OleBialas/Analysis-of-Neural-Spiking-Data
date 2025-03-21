@@ -1,0 +1,155 @@
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+np.random.seed(42)
+```
+
+
+## Correlogramm
+
+Define a function to compute a correlogramm
+
+```{python}
+def correlogram(spikes1, spikes2, bin_size=0.001, window=0.05):
+    is_auto = np.array_equal(spikes1, spikes2)
+
+    bins = np.arange(-window, window + bin_size, bin_size)
+    bin_centers = bins[:-1] + bin_size/2
+    counts = np.zeros(len(bins) - 1)
+
+    for i, spike in enumerate(spikes1):
+
+        mask = np.abs(spikes2 - spike) <= window
+        if is_auto: # exclude self-reference
+            mask[i] = False
+
+        if np.any(mask):
+            time_diffs = spikes2[mask] - spike
+            hist, _ = np.histogram(time_diffs, bins=bins)
+            counts += hist
+    
+    counts = counts / (len(spikes1))
+
+    return bin_centers, counts
+```
+
+
+Simulate some data to test how CCG works. Let's assume two cases: one where two neurons fire synchronously and one where they fire with a fix delay.
+
+```{python}
+t = np.linspace(0, 10, 10000)
+spikes1_sync = t[np.random.random(10000) < 0.1]
+spikes2_sync = spikes1_sync + np.random.normal(0, 0.002, len(spikes1_sync))
+spikes1_delay = t[np.random.random(10000) < 0.1]
+spikes2_delay = spikes1_delay + 0.005 + np.random.normal(0, 0.002, len(spikes1_delay))
+```
+
+Plot the compute and plot the CCG for both cases
+
+```{python}
+fig, ax = plt.subplots(1,2, sharex=True, sharey=True)
+bins, probabilities = correlogram(spikes1_sync, spikes2_sync)
+ax[0].bar(bins * 1e3, probabilities, width=1.0, align='center')
+bins, probabilities = correlogram(spikes1_delay, spikes2_delay)
+ax[1].bar(bins * 1e3, probabilities, width=1, align='center')
+ax[0].set(xlabel="Time Lag [ms]", ylabel="Spike Coincidence [a.u.]", title="Synchronous")
+ax[1].set(xlabel="Time Lag [ms]", title="Synchronous", xlim=(np.min(bins*1e3), np.max(bins*1e3)))
+plt.show()
+```
+
+## Autocorrelogram
+
+Simulate two independent neurons with a refractory period of 2s
+
+```{python}
+def generate_spikes_with_refractory(duration=10, rate=10, refractory=0.002):
+    spikes = []
+    t = 0
+    while t < duration:
+        interval = np.random.exponential(1/rate)
+        interval = max(interval, refractory)
+        t += interval
+        if t < duration:
+            spikes.append(t)
+    return np.array(spikes)
+```
+
+```{python}
+spikes1 = generate_spikes_with_refractory(rate=50)
+spikes2 = generate_spikes_with_refractory(rate=50)
+fig, ax = plt.subplots(1,2, sharex=True, sharey=True)
+bins, probabilities = correlogram(spikes1, spikes2, bin_size=0.0005, window=0.03)
+ax[0].bar(bins * 1e3, probabilities, width=1.0, align='center')
+bins, probabilities = correlogram(spikes1, spikes1, bin_size=0.0005, window=0.03)
+ax[1].bar(bins * 1e3, probabilities, width=1, align='center')
+ax[0].set(xlabel="Time Lag [ms]", ylabel="Spike Coincidence [a.u.]", title="Cross-Correlogram")
+ax[1].set(xlabel="Time Lag [ms]", title="Auto-Correlogram", xlim=(np.min(bins*1e3), np.max(bins*1e3)))
+plt.show()
+```
+
+## Use the Autocorrelogram to indetify Neurons
+
+Read the spike clusters
+```{python}
+probability_treshold = 0.5
+df = pd.read_csv("spike_clusters.csv")
+prob_mask = df["Probability"]>probability_treshold
+```
+
+Plot all autocorrelogramms to identify (lack of) a refractory period.
+
+```{python}
+fig, ax = plt.subplots(5,3)
+for i_c in range(df["Cluster"].max()+1):
+    axis = ax.flatten()[i_c]
+    spikes = df[df["Cluster"]==i_c]["Time"].values
+    spikes.sort()
+    bins, probabilities = correlogram(spikes, spikes, bin_size=0.0005, window=0.02)
+    axis.bar(bins * 1e3, probabilities, width=1, align='center')
+    axis.set(title=f"Cluster {i_c}", xticks=[], yticks=[])
+plt.show()
+```
+
+Identify Clusters that could be units
+
+```{python}
+unit_clusters = [3,5,8,9]
+```
+
+## Visualize the clusters
+
+```{python}
+pca_features = np.load("pca_features.npy")
+```
+
+```{python}
+fig, ax = plt.subplots(2,3)
+p = 0
+labels = ['Ch1','Ch2','Ch3','Ch4']
+for i in np.arange(0,4):
+    for j in np.arange(i+1,4):
+        axis = ax.flatten()[p]
+        for c in unit_clusters:
+            data = pca_features[df["Cluster"]==c, :, :]
+            axis.scatter(data[:,0, i], data[:,0, j], label=c, s=5) 
+        axis.set(xlabel=labels[i], ylabel=labels[j], xlim=(-1500,1500), ylim=(-1500, 1500), xticks=[], yticks=[])
+        p = p+1
+        axis.legend()
+plt.show()
+```
+
+3, 5 and 8 seem to represent neurons, 9 clearly doesn't.
+Let's save them in a new data frame.
+
+```{python}
+unit_clusters={3:1, 5:2, 8:3}
+df_units = df.copy()[df["Cluster"].isin([3,5,8])]
+df_units["Unit"] = 0
+for key, value in unit_clusters.items():
+    df_units.loc[df_units["Cluster"]==key, "Unit"] = value
+df_units.drop(columns=["Cluster", "Probability"])
+df.to_csv("units.csv", index=False)
+```
+
