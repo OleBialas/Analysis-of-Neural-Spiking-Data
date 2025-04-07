@@ -2,3 +2,5 @@
 05_indentifying_spikes/spike_waveforms.npy
 06_feature_extraction/pca_features.npy
 07_spike_clustering/spike_clusters.csv
+data
+*_files

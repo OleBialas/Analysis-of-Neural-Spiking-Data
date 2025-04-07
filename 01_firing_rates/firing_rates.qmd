@@ -1,0 +1,73 @@
+---
+title: "Spikes and Inter-Spikes Intervals"
+engine: Jupyter
+---
+
+```{python}
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import seaborn as sns
+```
+
+```{python}
+root = Path.cwd().parent.absolute()
+```
+
+We want to compute the firing rate in a a given window with baseline correction.
+```{python}
+window_tmin, window_tmax = 0.04, 0.05
+baseline_tmin, baseline_tmax = -0.1, 0
+window_dur = np.abs(window_tmin-window_tmax)
+baseline_dur = np.abs(baseline_tmin-baseline_tmax)
+```
+
+Load the data for each session and select the spikes within the window of interest and the baseline. Store the spikes in two different data frames.
+```{python}
+df_spikes = []
+df_baseline = []
+sessions = list((root/"data").glob("ses*"))
+for ses in sessions:
+    # read data
+    spikes = pd.read_parquet(ses/"spikes.parquet")
+    stimuli = pd.read_parquet(ses/"stimuli.parquet")
+    spike_times = spikes["spike_time"].to_numpy()
+    stim_onsets = stimuli["start_time"].to_numpy()
+    # define masks for window and baseline
+    spike_is_within_window = (spike_times[:, np.newaxis] >= stim_onsets[np.newaxis, :]+window_tmin) & (spike_times[:,np.newaxis] < (stim_onsets+window_tmax)[np.newaxis,:])
+    spike_is_within_baseline = (spike_times[:, np.newaxis] >= stim_onsets[np.newaxis, :]+baseline_tmin) & (spike_times[:,np.newaxis] <= (stim_onsets+baseline_tmax)[np.newaxis,:])
+    # filter spikes and append them to the data frames
+    df_spikes.append(spikes[spike_is_within_window.any(axis=1)])
+    df_baseline.append(spikes[spike_is_within_baseline.any(axis=1)])
+# concatenate the data into one df
+df_spikes = pd.concat(df_spikes)
+df_baseline = pd.concat(df_baseline)
+```
+
+Count the spikes for each unit within each area
+```{python}
+window_counts = df_spikes.groupby(['unit_id', 'brain_area']).size()
+baseline_counts = df_baseline.groupby(['unit_id', 'brain_area']).size()
+```
+
+Convert the counts to firing_rates
+```{python}
+n_stimuli = 75
+window_rate = window_counts/ (n_stimuli * window_dur)
+baseline_rate = baseline_counts/ (n_stimuli * baseline_dur)
+```
+
+Subtract the baseline firing rate
+```{python}
+rate_change = window_rate - baseline_rate
+rate_change = rate_change.dropna()
+rate_change = rate_change.reset_index()
+rate_change.columns = ['unit_id', 'brain_area', 'firing_rate']
+```
+
+Plot spike counts across areas
+```{python}
+sns.barplot(data=rate_change, x="firing_rate", hue="brain_area")
+```
+
+Now we can play around with the window and baseline time intervals to compute the firing profiles of different areas.
