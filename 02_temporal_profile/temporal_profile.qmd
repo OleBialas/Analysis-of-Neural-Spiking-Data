@@ -1,0 +1,107 @@
+
+```{python}
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+```
+
+```{python}
+root = Path.cwd().parent.absolute()
+```
+
+Load data for one session
+```{python}
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+spikes = pd.read_parquet(ses/"spikes.parquet")
+stimuli = pd.read_parquet(ses/"stimuli.parquet")
+n_stimuli = len(stimuli['start_time'])
+```
+
+Select spikes in V1 and pick a single unit
+```{python}
+spikes_v1 = spikes[spikes["brain_area"]=="V1"]
+unit_id = pd.unique(spikes_v1["unit_id"])[0]
+unit_spike_times = spikes_v1.loc[spikes_v1["unit_id"] == unit_id, "spike_time"].to_numpy()
+unit_spike_times = np.sort(unit_spike_times)
+```
+
+For each stimulus, find the spikes in the window and get their relative times
+```{python}
+tmin, tmax = -0.2, 0.5
+relative_spike_times = []
+for t_stim in stimuli["start_time"]:
+    window_start = t_stim + tmin
+    window_end = t_stim  +tmax
+    # Find spikes within the window
+    start_idx = np.searchsorted(unit_spike_times, window_start, side='left')
+    stop_idx = np.searchsorted(unit_spike_times, window_end, side='right')
+    # compute spike times relative to stimulus and add them to list
+    spikes_in_window = unit_spike_times[start_idx:stop_idx]
+    relative_spike_times.extend(spikes_in_window-t_stim)
+```
+
+
+```{python}
+# create bins
+bin_size = 0.005
+n_bins = int(np.ceil((tmax-tmin) / bin_size))
+bins = np.linspace(tmin, tmax, n_bins + 1)
+# count spikes per bin
+counts, bin_edges = np.histogram(relative_spike_times, bins=bins)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+# normalize to firing rate (Hz)
+psth = counts / (n_stimuli * bin_size)
+```
+
+
+```{python}
+plt.plot(bin_centers, psth)
+plt.xlabel("Time [s]")
+plt.ylabel("Firing Rate [Hz]")
+plt.axvline(x=0, ymin=0, ymax=1, linestyle='--', color="black")
+plt.axvline(x=0.25, ymin=0, ymax=1, linestyle='--', color="black")
+```
+
+
+Now do it for all units in V1
+```{python}
+unit_psths = []
+for unit_id in pd.unique(spikes_v1["unit_id"]):
+    unit_spike_times = spikes_v1.loc[spikes_v1["unit_id"] == unit_id, "spike_time"].to_numpy()
+    unit_spike_times = np.sort(unit_spike_times)
+    relative_spike_times = []
+    for t_stim in stimuli["start_time"]:
+        window_start = t_stim + tmin
+        window_end = t_stim  +tmax
+        # Find spikes within the window
+        start_idx = np.searchsorted(unit_spike_times, window_start, side='left')
+        stop_idx = np.searchsorted(unit_spike_times, window_end, side='right')
+        # compute spike times relative to stimulus and add them to list
+        spikes_in_window = unit_spike_times[start_idx:stop_idx]
+        relative_spike_times.extend(spikes_in_window-t_stim)
+    counts, bin_edges = np.histogram(relative_spike_times, bins=bins)
+    unit_psths.append(counts / (n_stimuli * bin_size))
+```
+
+Plot all PSTHs
+```{python}
+for psth in unit_psths:
+    plt.plot(bin_centers, psth, color="black", linewidth=0.5)
+plt.xlabel("Time [s]")
+plt.ylabel("Firing Rate [Hz]")
+plt.axvline(x=0, ymin=0, ymax=1, linestyle='--', color="black")
+plt.axvline(x=0.25, ymin=0, ymax=1, linestyle='--', color="black")
+```
+
+Plot the population mean PSTH
+```{python}
+mean_psth = np.mean(unit_psths, axis=0)
+plt.plot(bin_centers, mean_psth)
+plt.xlabel("Time [s]")
+plt.ylabel("Firing Rate [Hz]")
+plt.axvline(x=0, ymin=0, ymax=1, linestyle='--', color="black")
+plt.axvline(x=0.25, ymin=0, ymax=1, linestyle='--', color="black")
+
+```
