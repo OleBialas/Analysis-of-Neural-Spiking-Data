@@ -1,0 +1,116 @@
+
+```{python}
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+```
+
+```{python}
+root = Path.cwd().parent.absolute()
+```
+
+Load data for one session
+```{python}
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+spikes = pd.read_parquet(ses/"gabor_spikes.parquet")
+stimuli = pd.read_parquet(ses/"gabor_stimuli.parquet")
+stimuli["stim_presentation_id"] = stimuli.index
+n_stimuli = len(stimuli['start_time'])
+```
+
+Select a single unit from V1
+```{python}
+spikes_v1 = spikes[spikes["brain_area"]=="V1"]
+unit_id = pd.unique(spikes_v1["unit_id"])[2]
+unit_spikes = spikes_v1[spikes_v1["unit_id"]==unit_id]
+```
+
+ Get unique stimulus coordinates and sort them
+```{python}
+unique_y = np.sort(stimuli["y_position"].unique())
+unique_x = np.sort(stimuli["x_position"].unique())
+n_y = len(unique_y)
+n_x = len(unique_x)
+```
+
+Create mapping from coordinate value to grid index
+```{python}
+y_map = {val: i for i, val in enumerate(unique_y)}
+x_map = {val: i for i, val in enumerate(unique_x)}
+```
+
+Count spikes for each stimulus presentation and add the spike count to the stimuli data frame
+```{python}
+presentation_spike_counts = {}
+for idx, stim_row in stimuli.iterrows():
+    start = stim_row["start_time"]
+    end = stim_row["stop_time"]
+    stim_id = stim_row["stim_presentation_id"]
+
+    count = unit_spikes[
+        (unit_spikes["spike_time"] >= start)
+        & (unit_spikes["spike_time"] < end)
+    ].shape[0]
+    presentation_spike_counts[stim_id] = count
+
+stimuli["spike_count"] = stimuli["stim_presentation_id"].map(
+    presentation_spike_counts
+)
+```
+
+Calculate the average receptive field map
+```{python}
+avg_counts_per_loc = stimuli.groupby(["y_position", "x_position"])[
+    "spike_count"
+].mean()
+
+rf_map = np.full((n_y, n_x), np.nan)  # initalize 2D map
+
+for (y, x), avg_count in avg_counts_per_loc.items():
+    if y in y_map and x in x_map:
+        row_idx = y_map[y]
+        col_idx = x_map[x]
+        rf_map[row_idx, col_idx] = avg_count
+```
+
+Plot the receptive field
+```{python}
+im = plt.imshow(
+    rf_map,
+    cmap="viridis",
+    origin="lower",
+    interpolation='nearest',
+    extent=[
+        unique_x.min() - (unique_x[1]-unique_x[0])/2,
+        unique_x.max() + (unique_x[1]-unique_x[0])/2,
+        unique_y.min() - (unique_y[1]-unique_y[0])/2,
+        unique_y.max() + (unique_y[1]-unique_y[0])/2,
+    ],
+    aspect='auto'
+)
+
+plt.xlabel("X Visual Angle [$\\degree$ ]")
+plt.ylabel("Y Visual Angle [$\\degree$ ]")
+
+# Add Ticks corresponding to stimulus locations
+plt.xticks(unique_x)
+plt.yticks(unique_y)
+plt.gca().tick_params(axis='x', rotation=45) # Rotate x-ticks if crowded
+
+# Add Colorbar
+cbar = plt.colorbar(im)
+cbar.set_label("Average Spike Count per Presentation")
+
+plt.title("Receptive Field Map") # Added a simple title
+plt.grid(True, linestyle=':', alpha=0.5) # Optional grid
+plt.tight_layout() # Adjust layout to prevent labels overlapping
+plt.show()
+```
+
+Save the receptive field map to a file
+```{python}
+np.save(f"{unit_id}_rf.npy", rf_map)
+```
+

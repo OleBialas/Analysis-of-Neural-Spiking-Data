@@ -1,0 +1,187 @@
+
+```{python}
+from pathlib import Path
+import numpy as np
+from matplotlib import pyplot as plt
+import pandas as pd
+from scipy.optimize import curve_fit
+```
+
+```{python}
+root = Path.cwd().parent.absolute()
+```
+
+Load the receptive field estimated previously and get the stimulus locations
+```{python}
+rf_map = np.load("950947632_rf.npy")
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+stimuli = pd.read_parquet(ses/"gabor_stimuli.parquet")
+unique_y = np.sort(stimuli["y_position"].unique())
+unique_x = np.sort(stimuli["x_position"].unique())
+n_y = len(unique_y)
+n_x = len(unique_x)
+```
+
+We want to fit a 2D Gaussian to the receptive field. First, define 2D Gaussian function for curve_fit
+```{python}
+def gaussian_2d(coords_flat, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+    (y_flat, x_flat) = coords_flat # Unpack coordinates
+    xo = float(xo)
+    yo = float(yo)
+    # Rotation
+    a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+    b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+    c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+    # Calculate Gaussian value for each coordinate pair
+    g = offset + amplitude * np.exp( - (a*((x_flat-xo)**2) + 2*b*(x_flat-xo)*(y_flat-yo) + c*((y_flat-yo)**2)))
+    # Return flattened array
+    return g.ravel()
+```
+
+Prepare coordinate grids
+```{python}
+y_indices, x_indices = np.indices(rf_map.shape)
+```
+
+
+Calculate initial guesses for parameters
+```{python}
+initial_amplitude = np.nanmax(rf_map)
+initial_offset = np.nanmin(rf_map)
+initial_amplitude -= initial_offset
+
+peak_y_idx, peak_x_idx = np.unravel_index(np.argmax(rf_map), rf_map.shape)
+initial_xo = peak_x_idx
+initial_yo = peak_y_idx
+
+# Initial sigma guess: crude estimate based on spread
+# Use 1/4th of the map size as a starting point if peak is near edge,
+# otherwise estimate from where value drops significantly
+initial_sigma_x = max(1.0, n_x / 4.0) # Avoid sigma=0
+initial_sigma_y = max(1.0, n_y / 4.0)
+initial_theta = 0 # Assume no rotation initially
+
+initial_guess = [
+    initial_amplitude,
+    initial_xo,
+    initial_yo,
+    initial_sigma_x,
+    initial_sigma_y,
+    initial_theta,
+    initial_offset
+]
+```
+
+Perform curve fitting
+```{python}
+coords_for_fit = (y_indices.ravel(), x_indices.ravel())
+rf_map_flat = rf_map.ravel()
+
+popt, pcov = curve_fit(
+    gaussian_2d,
+    coords_for_fit,
+    rf_map_flat,
+    p0=initial_guess,
+    maxfev=5000 # Increase iterations if needed
+)
+```
+
+Extract the fitted paramaeters and calculate the width of the receptive fiels. If `spread_factor` is 2, width of the receptive field is $\pm \sigma_x$ and its height is $\pm \sigma_y$.
+```{python}
+spread_factor = 2
+amplitude_fit, xo_fit, yo_fit, sigma_x_fit, sigma_y_fit, theta_fit, offset_fit = popt
+# Ensure sigmas are positive
+sigma_x_fit = abs(sigma_x_fit)
+sigma_y_fit = abs(sigma_y_fit)
+
+width_pixels = spread_factor * sigma_x_fit
+height_pixels = spread_factor * sigma_y_fit
+```
+
+Compute the 2D Gaussian with the optimal parameters
+```{python}
+gauss_fit_flat = gaussian_2d(coords_for_fit, *popt)
+gauss_fit = gauss_fit_flat.reshape(n_y, n_x)
+```
+
+Calculate $R^2$ to estmate how good the receptive field model fits the data
+```{python}
+residuals = rf_map_flat - gaussian_2d(coords_for_fit, *popt)
+ssr = np.sum(residuals**2)  # sum of square residuals
+sst = np.sum((rf_map_flat - np.mean(rf_map_flat))**2) # total sum of squares
+# Calculate R-squared
+r_squared = 1 - (ssr / sst)
+```
+
+Calculate extent for imshow based on degree coordinates and adjust by half the spacing to center cells on ticks
+```{python}
+x_spacing = (unique_x[1] - unique_x[0])
+y_spacing = (unique_y[1] - unique_y[0])
+extent = [
+    unique_x.min() - x_spacing / 2,
+    unique_x.max() + x_spacing / 2,
+    unique_y.min() - y_spacing / 2,
+    unique_y.max() + y_spacing / 2,
+]
+```
+
+Get the center, width and height of the fitted Gaussian in degree
+```{python}
+center_x_deg = np.interp(xo_fit, np.arange(n_x), unique_x)
+center_y_deg = np.interp(yo_fit, np.arange(n_y), unique_y)
+width_deg = width_pixels * x_spacing
+height_deg = height_pixels * y_spacing
+```
+
+Get global minimum and maximum for the common colorbar
+```{python}
+vmin= min(np.nanmin(rf_map), np.nanmin(gauss_fit))
+vmax= max(np.nanmax(rf_map), np.nanmax(gauss_fit))
+```
+
+Create subplots for the original RF map and the fitted gaussian. Add a comon colorbar and lines for width and height.
+```{python}
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,5), sharex=True, sharey=True) # Adjust size slightly
+ax1.imshow(rf_map, origin='lower', extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+ax1.set_xlabel("Azimuth [Degree]")
+ax1.set_ylabel("Elevation [Degree]")
+ax1.set_xticks(unique_x)
+ax1.set_yticks(unique_y)
+ax1.tick_params(axis='x', rotation=45)
+ax1.set_title('Original RF Map')
+ax1.grid(True, linestyle=':', alpha=0.5)
+
+im2 = ax2.imshow(gauss_fit, origin='lower', extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+ax2.set_xlabel("Azimuth [Degree]")
+# ax2.set_ylabel("Elevation [Degree]") # Optional: remove redundant y-label
+ax2.set_xticks([])
+ax2.set_yticks(unique_y)
+ax2.tick_params(axis='x', rotation=45)
+ax2.set_title(f'Fitted Gaussian (R2={r_squared:.3f})')
+ax2.grid(True, linestyle=':', alpha=0.5)
+
+# Add lines for width and height
+ax2.plot(
+    [center_x_deg - width_deg / 2, center_x_deg + width_deg / 2],
+    [center_y_deg, center_y_deg],
+    color='black'
+)
+plt.plot(
+    [center_x_deg, center_x_deg],
+    [center_y_deg - height_deg / 2, center_y_deg + height_deg / 2],
+    color='black'
+)
+
+# Add colorbar
+cbar = fig.colorbar(
+    im2,
+    ax=[ax1, ax2],
+    location='right', # Or 'left', 'top', 'bottom'
+    shrink=0.75,      # Adjust size relative to axes height
+    label='Spike Count' # General label
+)
+plt.show()
+```
