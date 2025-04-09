@@ -1,0 +1,92 @@
+
+```{python}
+from pathlib import Path
+import quantities as pq
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+from quantities import s
+from neo.core import SpikeTrain, Segment, Event, Block
+from elephant.conversion import BinnedSpikeTrain
+from elephant.spike_train_generation import StationaryPoissonProcess
+from elephant.spike_train_correlation import cross_correlation_histogram
+from viziphant.spike_train_correlation import plot_cross_correlation_histogram
+root = Path.cwd().parent.absolute()
+np.random.seed(1)
+%matplotlib inline
+```
+
+First, test the method on simulated data.
+
+```{python}
+rate = 10. * pq.Hz 
+t_start = 0 * pq.ms
+t_stop = 5000 * pq.ms
+```
+Case 1: The neurons spike synchronously
+```{python}
+spikes_i = StationaryPoissonProcess( rate, t_start, t_stop).generate_spiketrain()
+spikes_j = StationaryPoissonProcess( rate, t_start, t_stop).generate_spiketrain()
+bst_i = BinnedSpikeTrain(spikes_i, bin_size=5*pq.ms)
+bst_j = BinnedSpikeTrain(spikes_j, bin_size=5*pq.ms)
+cc_hist, lags = cross_correlation_histogram( bst_i, bst_j, window=[-20, 20])
+plot_cross_correlation_histogram(cc_hist)
+```
+
+Case 2: The neurons fire synchronously
+```{python}
+spikes_j = SpikeTrain(
+    times=spikes_i.times+np.random.normal(loc=0, scale=5, size=len(spikes_i))*pq.ms, t_start=t_start, t_stop=t_stop
+)
+bst_i = BinnedSpikeTrain(spikes_i, bin_size=5*pq.ms)
+bst_j = BinnedSpikeTrain(spikes_j, bin_size=5*pq.ms)
+cc_hist, lags = cross_correlation_histogram( bst_i, bst_j, window=[-20, 20])
+plot_cross_correlation_histogram(cc_hist)
+```
+
+Case 3: The neurons fire with a constant delay
+```{python}
+spikes_j = SpikeTrain(
+    times=spikes_i.times+np.random.normal(loc=30, scale=5, size=len(spikes_i))*pq.ms, t_start=t_start, t_stop=t_stop
+)
+bst_i = BinnedSpikeTrain(spikes_i, bin_size=5*pq.ms)
+bst_j = BinnedSpikeTrain(spikes_j, bin_size=5*pq.ms)
+cc_hist, lags = cross_correlation_histogram( bst_i, bst_j, window=[-20, 20])
+plot_cross_correlation_histogram(cc_hist)
+```
+
+
+Now load the real data
+```{python}
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+spikes = pd.read_parquet(ses/"spikes.parquet")
+stimuli = pd.read_parquet(ses/"stimuli.parquet")
+n_stimuli = len(stimuli['start_time'])
+```
+Create a neo segment and add the unit spike trains
+```{python}
+t_start = stimuli["start_time"].min()-1
+t_stop = stimuli["start_time"].max()+1
+seg = Segment()
+for unit_id in spikes["unit_id"].unique():
+    spikes_unit = spikes[spikes["unit_id"]==unit_id]
+    spike_train = SpikeTrain(spikes_unit['spike_time'],units="s", t_stop=t_stop, t_start=t_start, name=f"{unit_id}-unit_id")
+    seg.spiketrains.append(spike_train)
+```
+
+Example 1: two neurons that fire in a coordinated way
+```{python}
+bst_i = BinnedSpikeTrain(seg.spiketrains[10], bin_size=0.01*s)
+bst_j = BinnedSpikeTrain(seg.spiketrains[200], bin_size=0.01*s)
+cc_hist, lags = cross_correlation_histogram( bst_i, bst_j, window=[-20, 20], border_correction=False, binary=False, kernel=None)
+plot_cross_correlation_histogram(cc_hist)
+```
+
+Example 2: Two neurons that are not associated
+```{python}
+bst_i = BinnedSpikeTrain(seg.spiketrains[0], bin_size=0.01*s)
+bst_j = BinnedSpikeTrain(seg.spiketrains[2], bin_size=0.01*s)
+cc_hist, lags = cross_correlation_histogram( bst_i, bst_j, window=[-20, 20], border_correction=False, binary=False, kernel=None)
+plot_cross_correlation_histogram(cc_hist)
+```

@@ -12,6 +12,7 @@ dependencies = [
     "ipywidgets>=8.1.5",
     "jupyter-cache>=1.0.1",
     "matplotlib>=3.10.1",
+    "nixio>=1.5.4",
     "pandas>=2.2.3",
     "pyarrow>=19.0.1",
     "pynwb>=2.8.3",
@@ -19,4 +20,5 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
+    "viziphant>=0.4.0",
 ]
