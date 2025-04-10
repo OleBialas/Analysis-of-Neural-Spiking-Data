@@ -1,0 +1,142 @@
+```{python}
+from collections import Counter
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+import quantities as pq
+from neo.core import Block, Segment, SpikeTrain
+import elephant.unitary_event_analysis as ue
+import elephant.conversion as conv
+from elephant.spike_train_generation import StationaryPoissonProcess
+from viziphant.unitary_event_analysis import plot_ue
+np.random.seed(13) # Fix random seed to guarantee fixed output
+%matplotlib inline
+```
+
+Reproduce the simulation example from Gruen et al. 1999 where wto neurons fire independently with a `base_rate` but there are also conicident events with a lower `conicidence_rate` and a temporal `jitter`.
+
+```{python}
+base_rate = 10. * pq.Hz 
+coincidence_rate = 0.2 * pq.Hz
+t_start = 0 * pq.ms
+t_stop = 5000 * pq.ms
+jitter = 5 * pq.ms
+```
+
+First, generate two independent spike trains
+
+```{python}
+base_spiking = StationaryPoissonProcess(base_rate, t_start, t_stop)
+base_spikes_i, base_spikes_j = base_spiking.generate_n_spiketrains(2)
+```
+
+Then generate the coincident spikes with a given jitter
+
+```{python}
+coincident_spiking = StationaryPoissonProcess(coincidence_rate, t_start, t_stop)
+coincident_spikes_i = coincident_spiking.generate_spiketrain()
+coincident_spikes_j = SpikeTrain(
+    times=coincident_spikes_i.times + np.random.uniform(-jitter, jitter, len(coincident_spikes_i))*pq.ms,
+    t_start = coincident_spikes_i.t_start,
+    t_stop = coincident_spikes_i.t_stop
+        )
+```
+
+Merge the two spike trains
+
+```{python}
+spikes_i = base_spikes_i.merge(coincident_spikes_i)
+spikes_j = base_spikes_j.merge(coincident_spikes_j)
+```
+
+Plot the spikes
+```{python}
+fig, ax = plt.subplots(3, sharex=True)
+ax[0].eventplot([base_spikes_i.times, base_spikes_j.times])
+ax[0].set(title="Base Spikes", yticks=[0, 1], yticklabels=["i", "j"])
+ax[1].eventplot([coincident_spikes_i.times, coincident_spikes_j.times])
+ax[1].set(title="Coincident Spikes", yticks=[0, 1], yticklabels=["i", "j"])
+ax[2].eventplot([spikes_i.times, spikes_j.times])
+ax[2].set(title="Merged Spikes", xlabel="Time [ms]", yticks=[0, 1], yticklabels=["i", "j"])
+plt.tight_layout()
+```
+
+Now, we use this generative model to simulate multiple trials. First, we define a function to generate one trial 
+```{python}
+def simulate_trial(t_start, t_stop, base_rate, coincidence_rate, jitter):
+    base_spiking = StationaryPoissonProcess(base_rate, t_start, t_stop)
+    base_spikes_i, base_spikes_j = base_spiking.generate_n_spiketrains(2)
+    coincident_spiking = StationaryPoissonProcess(coincidence_rate, t_start, t_stop)
+    coincident_spikes_i = coincident_spiking.generate_spiketrain()
+    coincident_spikes_j = SpikeTrain(
+        times=coincident_spikes_i.times + np.random.uniform(-jitter, jitter, len(coincident_spikes_i))*pq.ms,
+        t_start = coincident_spikes_i.t_start,
+        t_stop = coincident_spikes_i.t_stop
+        )
+    spikes_i = base_spikes_i.merge(coincident_spikes_i)
+    spikes_j = base_spikes_j.merge(coincident_spikes_j)
+    return [spikes_i, spikes_j]
+```
+Then, we simulate `n_trials`
+
+```{python}
+n_trials = 50
+trials = []
+for i in range(n_trials):
+    trials.append(simulate_trial(t_start, t_stop, base_rate, coincidence_rate, jitter))
+```
+
+Perform unitary event analysis on the simulated data
+
+```{python}
+UE = ue.jointJ_window_analysis( trials, bin_size=5*pq.ms, win_size=100*pq.ms, win_step=10*pq.ms, pattern_hash=[3])
+```
+
+Plot the results
+
+```{python}
+plot_ue(trials, UE, significance_level=0.05)
+```
+
+Now load the real data
+
+```{python}
+root = Path.cwd().parent.absolute()
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+spikes = pd.read_parquet(ses/"flash_spikes.parquet")
+stimuli = pd.read_parquet(ses/"flash_stimuli.parquet")
+```
+
+Select spikes from one `brain_area`
+```{python}
+brain_area = "V1"
+spikes = spikes[spikes["brain_area"]==brain_area]
+```
+
+```{python}
+block = Block()
+tmin, tmax = 0, 1.0
+unit_ids = spikes["unit_id"].unique()[[2,4]]
+for t in stimuli["start_time"]:
+    seg = Segment()
+    segment_spikes = spikes[((t+tmin)<=spikes["spike_time"]) & (spikes["spike_time"]<=(t+tmax))]
+    for uid in unit_ids:
+        spike_times =  segment_spikes[segment_spikes["unit_id"]==uid]["spike_time"].to_numpy()
+        spike_times -= t # compute spike times relative to stimulus
+        spike_train = SpikeTrain(spike_times, units="s", t_stop=tmax, t_start=tmin)
+        seg.spiketrains.append(spike_train)
+    block.segments.append(seg)
+```
+
+Extract the trials and run UEA
+```{python}
+trials = [seg.spiketrains for seg in block.segments]
+UE = ue.jointJ_window_analysis( trials, bin_size=10*pq.ms, win_size=100*pq.ms, win_step=10*pq.ms)
+```
+
+```{python}
+plot_ue(trials, UE, significance_level=0.05)
+```
+
