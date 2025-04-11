@@ -1,0 +1,320 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pathlib import Path\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "from matplotlib import pyplot as plt\n",
+        "import quantities as pq\n",
+        "from neo.core import SpikeTrain, Segment, Event, Block\n",
+        "from neo.io import NixIO\n",
+        "from elephant.statistics import mean_firing_rate, time_histogram\n",
+        "from viziphant.rasterplot import rasterplot\n",
+        "from viziphant.statistics import plot_time_histogram\n",
+        "%matplotlib inline"
+      ],
+      "id": "e532200c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "root = Path.cwd().parent.absolute()"
+      ],
+      "id": "24c29a61",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Load"
+      ],
+      "id": "0d797427"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sessions = list((root/\"data\").glob(\"ses*\"))\n",
+        "ses = sessions[0]\n",
+        "spikes = pd.read_parquet(ses/\"flash_spikes.parquet\")\n",
+        "stimuli = pd.read_parquet(ses/\"flash_stimuli.parquet\")"
+      ],
+      "id": "100ffe19",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Create a `Segment` to store our data."
+      ],
+      "id": "828885b7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "seg = Segment()"
+      ],
+      "id": "169efe7d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Iterate all units and add a `SpikeTrain` for each unit."
+      ],
+      "id": "86c62e35"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "t_start = spikes[\"spike_time\"].min() * pq.s\n",
+        "t_stop = spikes[\"spike_time\"].max() * pq.s\n",
+        "for unit_id in spikes[\"unit_id\"].unique():\n",
+        "    spikes_unit = spikes[spikes[\"unit_id\"]==unit_id][\"spike_time\"]\n",
+        "    spike_train = SpikeTrain(spikes_unit,units=\"s\", t_stop=t_stop, t_start=t_start, name=unit_id)\n",
+        "    seg.spiketrains.append(spike_train)\n",
+        "print(f\"The segment contains {len(seg.spiketrains)} spike trains\")"
+      ],
+      "id": "1b1052de",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can also add each stimulus as `Event`"
+      ],
+      "id": "da78875b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "stimulus_onsets = stimuli[\"start_time\"].to_numpy() * pq.s\n",
+        "stimulus_labels = [\"flash\"] * len(stimulus_onsets)\n",
+        "events = Event(times=stimulus_onsets, labels=stimulus_labels)\n",
+        "seg.events.append(events)\n",
+        "print(f\"The segment contains {len(seg.events[0])} stimulus events\")"
+      ],
+      "id": "7ff3bc6f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Now we can analyze this data using functions from elephant. For example, we can get the average firing rate for each Neuron\n"
+      ],
+      "id": "54fda79a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "mean_rates = [mean_firing_rate(st) for st in seg.spiketrains]\n",
+        "plt.hist(mean_rates)\n",
+        "plt.show()"
+      ],
+      "id": "3fde5ca0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can also use visualization functions from the `viziphant` package, for example to create a rasterplot\n"
+      ],
+      "id": "23bbf572"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "rasterplot(list(seg.spiketrains[0:20]))\n",
+        "plt.xlim(1400, 1405)"
+      ],
+      "id": "066fa759",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can also epoch the data using a time interval around each stimulus.\n"
+      ],
+      "id": "20096079"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "t_start = -0.1 * pq.s\n",
+        "t_stop = 0.5 * pq.s"
+      ],
+      "id": "414fbb4a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "For this, we create a `Block` object to store the whole recording. Then we iterate the stimuli and create a `Segment` for each stimulus. For each segment, we iterate the units and add a `SpikeTrain` for each unit.\n",
+        "In each trial, we subtract the stimulus onset time from the spike times so they represent the spiking relatve to the stimulus\n"
+      ],
+      "id": "a096bcd3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "block = Block()\n",
+        "unit_ids = spikes[\"unit_id\"].unique()\n",
+        "for i, stimulus in stimuli.iterrows():\n",
+        "    seg = Segment(name=f\"trial-{i}\")\n",
+        "    stimulus_onset = stimulus[\"start_time\"]*pq.s\n",
+        "    win_start = stimulus_onset + t_start\n",
+        "    win_stop = stimulus_onset + t_stop\n",
+        "    segment_spikes = spikes[(win_start<=spikes[\"spike_time\"]) & (spikes[\"spike_time\"]<=win_stop)]\n",
+        "    for uid in unit_ids:\n",
+        "        unit_spike_times = segment_spikes[segment_spikes[\"unit_id\"]==uid][\"spike_time\"]\n",
+        "        unit_spike_times = unit_spike_times.to_numpy() * pq.s\n",
+        "        unit_spike_times -= stimulus_onset\n",
+        "        spike_train = SpikeTrain(unit_spike_times, t_stop=t_stop, t_start=t_start, name=uid)\n",
+        "        seg.spiketrains.append(spike_train)\n",
+        "    block.segments.append(seg)\n",
+        "print(f\"The block contains {len(block.segments)} trials\")"
+      ],
+      "id": "698e782e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "With this data format, we can easliy compute a peri-stimulus time-histogram for a given unit"
+      ],
+      "id": "625a3732"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spike_trains = [seg.spiketrains[2] for seg in block.segments]\n",
+        "hist = time_histogram(spike_trains, bin_size=10*pq.ms)"
+      ],
+      "id": "b129c4fc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `time_histogram` returns an `AnalogSignal` which is neo's way of representing continuous data. The start and stop of the histogram depends on the `t_start` and `t_stop` of the `SpikeTrain` objects and the sampling rate on the bin size. The `AnalogSignal` can be plotted directy with matplotlib.\n"
+      ],
+      "id": "2c514bc9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.plot(hist.times, hist)\n",
+        "plt.title(f\"PSTH from {hist.t_start} to {hist.t_stop} sampled at {hist.sampling_rate}\")\n",
+        "plt.xlabel(\"Time [s]\")\n",
+        "plt.ylabel(\"Spike Count\")"
+      ],
+      "id": "9d580f30",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Or we can use a function from viziphant"
+      ],
+      "id": "f5d0b752"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plot_time_histogram(hist)"
+      ],
+      "id": "42519f4b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Finally, the data can also be saved to a the NIX format (this takes some time)"
+      ],
+      "id": "45606908"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fname = f\"{ses.name}.nix\"\n",
+        "nix_file = NixIO(fname, mode=\"ow\")\n",
+        "nix_file.write(block)\n",
+        "nix_file.close()"
+      ],
+      "id": "fab3982b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Read the data back into neo to make sure writing worked"
+      ],
+      "id": "67e0bd56"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "nix_file = NixIO(fname, mode=\"ro\")\n",
+        "block = nix_file.read()\n",
+        "print(f\"The block contains {len(block.segments)} trials\")"
+      ],
+      "id": "eafeb2fa",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/olebi/projects/Analysis-of-Neural-Spiking-Data/.venv/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

@@ -5,3 +5,4 @@
 07_spike_clustering/spike_clusters.csv
 data
 *_files
+*.nix

@@ -1,0 +1,131 @@
+
+```{python}
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+import quantities as pq
+from neo.core import SpikeTrain, Segment, Event, Block
+from neo.io import NixIO
+from elephant.statistics import mean_firing_rate, time_histogram
+from viziphant.rasterplot import rasterplot
+from viziphant.statistics import plot_time_histogram
+%matplotlib inline
+```
+
+```{python}
+root = Path.cwd().parent.absolute()
+```
+
+Load
+```{python}
+sessions = list((root/"data").glob("ses*"))
+ses = sessions[0]
+spikes = pd.read_parquet(ses/"flash_spikes.parquet")
+stimuli = pd.read_parquet(ses/"flash_stimuli.parquet")
+```
+
+Create a `Segment` to store our data.
+```{python}
+seg = Segment()
+```
+
+Iterate all units and add a `SpikeTrain` for each unit.
+```{python}
+t_start = spikes["spike_time"].min() * pq.s
+t_stop = spikes["spike_time"].max() * pq.s
+for unit_id in spikes["unit_id"].unique():
+    spikes_unit = spikes[spikes["unit_id"]==unit_id]["spike_time"]
+    spike_train = SpikeTrain(spikes_unit,units="s", t_stop=t_stop, t_start=t_start, name=unit_id)
+    seg.spiketrains.append(spike_train)
+print(f"The segment contains {len(seg.spiketrains)} spike trains")
+```
+
+We can also add each stimulus as `Event`
+```{python}
+stimulus_onsets = stimuli["start_time"].to_numpy() * pq.s
+stimulus_labels = ["flash"] * len(stimulus_onsets)
+events = Event(times=stimulus_onsets, labels=stimulus_labels)
+seg.events.append(events)
+print(f"The segment contains {len(seg.events[0])} stimulus events")
+```
+
+Now we can analyze this data using functions from elephant. For example, we can get the average firing rate for each Neuron
+
+```{python}
+mean_rates = [mean_firing_rate(st) for st in seg.spiketrains]
+plt.hist(mean_rates)
+plt.show()
+```
+
+We can also use visualization functions from the `viziphant` package, for example to create a rasterplot
+
+```{python}
+rasterplot(list(seg.spiketrains[0:20]))
+plt.xlim(1400, 1405)
+```
+
+We can also epoch the data using a time interval around each stimulus.
+
+```{python}
+t_start = -0.1 * pq.s
+t_stop = 0.5 * pq.s
+```
+
+For this, we create a `Block` object to store the whole recording. Then we iterate the stimuli and create a `Segment` for each stimulus. For each segment, we iterate the units and add a `SpikeTrain` for each unit.
+In each trial, we subtract the stimulus onset time from the spike times so they represent the spiking relatve to the stimulus
+
+```{python}
+block = Block()
+unit_ids = spikes["unit_id"].unique()
+for i, stimulus in stimuli.iterrows():
+    seg = Segment(name=f"trial-{i}")
+    stimulus_onset = stimulus["start_time"]*pq.s
+    win_start = stimulus_onset + t_start
+    win_stop = stimulus_onset + t_stop
+    segment_spikes = spikes[(win_start<=spikes["spike_time"]) & (spikes["spike_time"]<=win_stop)]
+    for uid in unit_ids:
+        unit_spike_times = segment_spikes[segment_spikes["unit_id"]==uid]["spike_time"]
+        unit_spike_times = unit_spike_times.to_numpy() * pq.s
+        unit_spike_times -= stimulus_onset
+        spike_train = SpikeTrain(unit_spike_times, t_stop=t_stop, t_start=t_start, name=uid)
+        seg.spiketrains.append(spike_train)
+    block.segments.append(seg)
+print(f"The block contains {len(block.segments)} trials")
+```
+
+With this data format, we can easliy compute a peri-stimulus time-histogram for a given unit
+```{python}
+spike_trains = [seg.spiketrains[2] for seg in block.segments]
+hist = time_histogram(spike_trains, bin_size=10*pq.ms)
+```
+
+The `time_histogram` returns an `AnalogSignal` which is neo's way of representing continuous data. The start and stop of the histogram depends on the `t_start` and `t_stop` of the `SpikeTrain` objects and the sampling rate on the bin size. The `AnalogSignal` can be plotted directy with matplotlib.
+
+```{python}
+plt.plot(hist.times, hist)
+plt.title(f"PSTH from {hist.t_start} to {hist.t_stop} sampled at {hist.sampling_rate}")
+plt.xlabel("Time [s]")
+plt.ylabel("Spike Count")
+```
+
+Or we can use a function from viziphant
+```{python}
+plot_time_histogram(hist)
+```
+
+Finally, the data can also be saved to a the NIX format (this takes some time)
+```{python}
+fname = f"{ses.name}.nix"
+nix_file = NixIO(fname, mode="ow")
+nix_file.write(block)
+nix_file.close()
+```
+
+Read the data back into neo to make sure writing worked
+```{python}
+nix_file = NixIO(fname, mode="ro")
+block = nix_file.read()[0]
+print(f"The block contains {len(block.segments)} trials")
+```
+
