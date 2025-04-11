@@ -126,6 +126,7 @@ Read the data back into neo to make sure writing worked
 ```{python}
 nix_file = NixIO(fname, mode="ro")
 block = nix_file.read()[0]
+nix_file.close()
 print(f"The block contains {len(block.segments)} trials")
 ```
 

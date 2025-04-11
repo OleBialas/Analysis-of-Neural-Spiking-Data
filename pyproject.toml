@@ -14,6 +14,7 @@ dependencies = [
     "matplotlib>=3.10.1",
     "nixio>=1.5.4",
     "pandas>=2.2.3",
+    "pickleshare>=0.7.5",
     "pyarrow>=19.0.1",
     "pynwb>=2.8.3",
     "quantities>=0.16.1",

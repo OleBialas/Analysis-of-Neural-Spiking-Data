@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<div id="5f65bde4" class="cell" data-execution_count="1">
+<div id="af4c8096" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> quantities <span class="im">as</span> pq</span>
@@ -90,14 +90,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Simulate a stationary poisson Process</p>
-<div id="f3133bbd" class="cell" data-execution_count="2">
+<div id="af9ea581" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> <span class="dv">5</span> <span class="op">*</span> pq.Hz</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> <span class="dv">0</span> <span class="op">*</span> pq.s</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> <span class="dv">20</span> <span class="op">*</span> pq.s</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>neuron1 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span>rate, t_start<span class="op">=</span>t_start, t_stop<span class="op">=</span>t_stop)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Observe the number of spikes across multiple time intervals</p>
-<div id="6cf1e558" class="cell" data-execution_count="3">
+<div id="2e561edb" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>n_spikes <span class="op">=</span> []</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    spike_train <span class="op">=</span> neuron1.generate_spiketrain()</span>
@@ -105,7 +105,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.hist(n_spikes)</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Spike Count"</span>)</span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Number of Observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="40">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>Text(0, 0.5, 'Number of Observations')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -117,13 +117,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Plot the distribution of intervals for a single spike train</p>
-<div id="50f81037" class="cell" data-execution_count="4">
+<div id="9126a6a4" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spike_train <span class="op">=</span> neuron1.generate_spiketrain()</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>inter_spike_intervals <span class="op">=</span> isi(spike_train)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>plt.hist(inter_spike_intervals.magnitude)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Spike Count"</span>)</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Number of Observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="41">
+<div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>Text(0, 0.5, 'Number of Observations')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -135,7 +135,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Compute the coefficient of variation (CV) for multiple spike trains and plot the distribution</p>
-<div id="e17d30e7" class="cell" data-execution_count="5">
+<div id="55f47d03" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>coefficient_of_variation <span class="op">=</span> []</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    spike_train <span class="op">=</span> neuron1.generate_spiketrain()</span>
@@ -144,7 +144,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>plt.hist(coefficient_of_variation)</span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Coefficient of Variation"</span>)</span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Number of Observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="42">
+<div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>Text(0, 0.5, 'Number of Observations')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -156,7 +156,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>We can also add a refractory period to the neuron. This makes firing more regular and less Poisson-like.</p>
-<div id="83972f49" class="cell" data-execution_count="6">
+<div id="4732bf64" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>neuron2 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span>rate, t_start<span class="op">=</span>t_start, t_stop<span class="op">=</span>t_stop, refractory_period<span class="op">=</span><span class="dv">2</span><span class="op">*</span>pq.ms)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>coefficient_of_variation <span class="op">=</span> []</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
@@ -167,7 +167,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">1</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span>
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Coefficient of Variation"</span>)</span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Number of Observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="43">
+<div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>Text(0, 0.5, 'Number of Observations')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -179,7 +179,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Often, neurons do not behave as poisson processes because their firing depends on perceptual, cognitive or motor events. We can simulate this as a <code>NonStationaryPoissonProcess</code> with a firing rate that varies over time. First, we generate the time-varying rate as an <code>AnalogSignal</code>.</p>
-<div id="dddaf1b2" class="cell" data-execution_count="7">
+<div id="550419e2" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> <span class="dv">0</span> <span class="op">*</span> pq.s</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> <span class="dv">5</span> <span class="op">*</span> pq.s</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>modulation_amplitude <span class="op">=</span> <span class="dv">10</span> <span class="op">*</span> pq.Hz</span>
@@ -200,7 +200,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Create an <code>AnalogSignal</code> and use it as a time-varying <code>rate_signal</code> for the <code>NonStationaryPoissonProcess</code></p>
-<div id="324f2934" class="cell" data-execution_count="8">
+<div id="b552151a" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>rate_signal <span class="op">=</span> AnalogSignal(</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    signal<span class="op">=</span>signal,</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    sampling_rate<span class="op">=</span>sampling_rate,</span>
@@ -210,7 +210,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>neuron3 <span class="op">=</span> NonStationaryPoissonProcess(rate_signal<span class="op">=</span>rate_signal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Plot the modulation frequency together with the spike times</p>
-<div id="7ab9d54c" class="cell" data-execution_count="9">
+<div id="a9995720" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">2</span>, sharex<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>spike_times <span class="op">=</span> neuron3.generate_spiketrain().times</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(rate_signal.times, rate_signal)</span>
@@ -224,7 +224,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Plot the cv distribution for this bursting neuron</p>
-<div id="71ae8555" class="cell" data-execution_count="10">
+<div id="d86f45ed" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>coefficient_of_variation <span class="op">=</span> []</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    spike_train <span class="op">=</span> neuron3.generate_spiketrain()</span>
@@ -234,7 +234,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">1</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Coefficient of Variation"</span>)</span>
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Number of Observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="47">
+<div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>Text(0, 0.5, 'Number of Observations')</code></pre>
 </div>
 <div class="cell-output cell-output-display">

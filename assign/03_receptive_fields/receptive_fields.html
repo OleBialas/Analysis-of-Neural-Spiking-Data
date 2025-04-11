@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>cross_correlogram</title>
+<title>receptive_fields</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -57,16 +57,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="cross_correlogram_files/libs/clipboard/clipboard.min.js"></script>
-<script src="cross_correlogram_files/libs/quarto-html/quarto.js"></script>
-<script src="cross_correlogram_files/libs/quarto-html/popper.min.js"></script>
-<script src="cross_correlogram_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="cross_correlogram_files/libs/quarto-html/anchor.min.js"></script>
-<link href="cross_correlogram_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="cross_correlogram_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="cross_correlogram_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="cross_correlogram_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="cross_correlogram_files/libs/bootstrap/bootstrap-113ed821acb9bc3786769aae4e84dd99.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="receptive_fields_files/libs/clipboard/clipboard.min.js"></script>
+<script src="receptive_fields_files/libs/quarto-html/quarto.js"></script>
+<script src="receptive_fields_files/libs/quarto-html/popper.min.js"></script>
+<script src="receptive_fields_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="receptive_fields_files/libs/quarto-html/anchor.min.js"></script>
+<link href="receptive_fields_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="receptive_fields_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="receptive_fields_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="receptive_fields_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="receptive_fields_files/libs/bootstrap/bootstrap-113ed821acb9bc3786769aae4e84dd99.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
@@ -80,123 +80,117 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<div id="b26438a0" class="cell" data-execution_count="1">
+<div id="e713b34f" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> quantities <span class="im">as</span> pq</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> quantities <span class="im">import</span> s</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neo.core <span class="im">import</span> SpikeTrain, Segment, Event, Block</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> elephant.conversion <span class="im">import</span> BinnedSpikeTrain</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> elephant.spike_train_generation <span class="im">import</span> StationaryPoissonProcess</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> elephant.spike_train_correlation <span class="im">import</span> cross_correlation_histogram</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> viziphant.spike_train_correlation <span class="im">import</span> plot_cross_correlation_histogram</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>root <span class="op">=</span> Path.cwd().parent.absolute()</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">1</span>)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>First, test the method on simulated data.</p>
-<div id="c8c57305" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> <span class="fl">10.</span> <span class="op">*</span> pq.Hz </span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> <span class="dv">0</span> <span class="op">*</span> pq.ms</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> <span class="dv">5000</span> <span class="op">*</span> pq.ms</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="db4fa41b" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>root <span class="op">=</span> Path.cwd().parent.absolute()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Case 1: The neurons spike synchronously</p>
-<div id="16b12aba" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>spikes_i <span class="op">=</span> StationaryPoissonProcess( rate, t_start, t_stop).generate_spiketrain()</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>spikes_j <span class="op">=</span> StationaryPoissonProcess( rate, t_start, t_stop).generate_spiketrain()</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>bst_i <span class="op">=</span> BinnedSpikeTrain(spikes_i, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>bst_j <span class="op">=</span> BinnedSpikeTrain(spikes_j, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>cc_hist, lags <span class="op">=</span> cross_correlation_histogram( bst_i, bst_j, window<span class="op">=</span>[<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>])</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>plot_cross_correlation_histogram(cc_hist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Load data for one session</p>
+<div id="bce0e4c8" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sessions <span class="op">=</span> <span class="bu">list</span>((root<span class="op">/</span><span class="st">"data"</span>).glob(<span class="st">"ses*"</span>))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ses <span class="op">=</span> sessions[<span class="dv">0</span>]</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>spikes <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"gabor_spikes.parquet"</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>stimuli <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"gabor_stimuli.parquet"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>stimuli[<span class="st">"stim_presentation_id"</span>] <span class="op">=</span> stimuli.index</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>n_stimuli <span class="op">=</span> <span class="bu">len</span>(stimuli[<span class="st">'start_time'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Select a single unit from V1</p>
+<div id="c8ed7f4e" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>spikes_v1 <span class="op">=</span> spikes[spikes[<span class="st">"brain_area"</span>]<span class="op">==</span><span class="st">"V1"</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>unit_id <span class="op">=</span> pd.unique(spikes_v1[<span class="st">"unit_id"</span>])[<span class="dv">2</span>]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>unit_spikes <span class="op">=</span> spikes_v1[spikes_v1[<span class="st">"unit_id"</span>]<span class="op">==</span>unit_id]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Get unique stimulus coordinates and sort them</p>
+<div id="162ff558" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>unique_y <span class="op">=</span> np.sort(stimuli[<span class="st">"y_position"</span>].unique())</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>unique_x <span class="op">=</span> np.sort(stimuli[<span class="st">"x_position"</span>].unique())</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>n_y <span class="op">=</span> <span class="bu">len</span>(unique_y)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>n_x <span class="op">=</span> <span class="bu">len</span>(unique_x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Create mapping from coordinate value to grid index</p>
+<div id="480e399c" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>y_map <span class="op">=</span> {val: i <span class="cf">for</span> i, val <span class="kw">in</span> <span class="bu">enumerate</span>(unique_y)}</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>x_map <span class="op">=</span> {val: i <span class="cf">for</span> i, val <span class="kw">in</span> <span class="bu">enumerate</span>(unique_x)}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Count spikes for each stimulus presentation and add the spike count to the stimuli data frame</p>
+<div id="938bf22d" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>presentation_spike_counts <span class="op">=</span> {}</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> idx, stim_row <span class="kw">in</span> stimuli.iterrows():</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    start <span class="op">=</span> stim_row[<span class="st">"start_time"</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    end <span class="op">=</span> stim_row[<span class="st">"stop_time"</span>]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    stim_id <span class="op">=</span> stim_row[<span class="st">"stim_presentation_id"</span>]</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> unit_spikes[</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        (unit_spikes[<span class="st">"spike_time"</span>] <span class="op">&gt;=</span> start)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span> (unit_spikes[<span class="st">"spike_time"</span>] <span class="op">&lt;</span> end)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    ].shape[<span class="dv">0</span>]</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    presentation_spike_counts[stim_id] <span class="op">=</span> count</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>stimuli[<span class="st">"spike_count"</span>] <span class="op">=</span> stimuli[<span class="st">"stim_presentation_id"</span>].<span class="bu">map</span>(</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    presentation_spike_counts</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Calculate the average receptive field map</p>
+<div id="f8c43b45" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>avg_counts_per_loc <span class="op">=</span> stimuli.groupby([<span class="st">"y_position"</span>, <span class="st">"x_position"</span>])[</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"spike_count"</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>].mean()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>rf_map <span class="op">=</span> np.full((n_y, n_x), np.nan)  <span class="co"># initalize 2D map</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (y, x), avg_count <span class="kw">in</span> avg_counts_per_loc.items():</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="kw">in</span> y_map <span class="kw">and</span> x <span class="kw">in</span> x_map:</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        row_idx <span class="op">=</span> y_map[y]</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        col_idx <span class="op">=</span> x_map[x]</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        rf_map[row_idx, col_idx] <span class="op">=</span> avg_count</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Plot the receptive field</p>
+<div id="74dfef76" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>im <span class="op">=</span> plt.imshow(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    rf_map,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    cmap<span class="op">=</span><span class="st">"viridis"</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    origin<span class="op">=</span><span class="st">"lower"</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    interpolation<span class="op">=</span><span class="st">'nearest'</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    extent<span class="op">=</span>[</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        unique_x.<span class="bu">min</span>() <span class="op">-</span> (unique_x[<span class="dv">1</span>]<span class="op">-</span>unique_x[<span class="dv">0</span>])<span class="op">/</span><span class="dv">2</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        unique_x.<span class="bu">max</span>() <span class="op">+</span> (unique_x[<span class="dv">1</span>]<span class="op">-</span>unique_x[<span class="dv">0</span>])<span class="op">/</span><span class="dv">2</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        unique_y.<span class="bu">min</span>() <span class="op">-</span> (unique_y[<span class="dv">1</span>]<span class="op">-</span>unique_y[<span class="dv">0</span>])<span class="op">/</span><span class="dv">2</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        unique_y.<span class="bu">max</span>() <span class="op">+</span> (unique_y[<span class="dv">1</span>]<span class="op">-</span>unique_y[<span class="dv">0</span>])<span class="op">/</span><span class="dv">2</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    aspect<span class="op">=</span><span class="st">'auto'</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"X Visual Angle [$</span><span class="ch">\\</span><span class="st">degree$ ]"</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Y Visual Angle [$</span><span class="ch">\\</span><span class="st">degree$ ]"</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Ticks corresponding to stimulus locations</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>plt.xticks(unique_x)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>plt.yticks(unique_y)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>plt.gca().tick_params(axis<span class="op">=</span><span class="st">'x'</span>, rotation<span class="op">=</span><span class="dv">45</span>) <span class="co"># Rotate x-ticks if crowded</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Colorbar</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>cbar <span class="op">=</span> plt.colorbar(im)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>cbar.set_label(<span class="st">"Average Spike Count per Presentation"</span>)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Receptive Field Map"</span>) <span class="co"># Added a simple title</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.5</span>) <span class="co"># Optional grid</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout() <span class="co"># Adjust layout to prevent labels overlapping</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="cross_correlogram_files/figure-html/cell-4-output-1.png" width="576" height="449" class="figure-img"></p>
+<p><img src="receptive_fields_files/figure-html/cell-10-output-1.png" width="640" height="468" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Case 2: The neurons fire synchronously</p>
-<div id="e6c532f0" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>spikes_j <span class="op">=</span> SpikeTrain(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    times<span class="op">=</span>spikes_i.times<span class="op">+</span>np.random.normal(loc<span class="op">=</span><span class="dv">0</span>, scale<span class="op">=</span><span class="dv">5</span>, size<span class="op">=</span><span class="bu">len</span>(spikes_i))<span class="op">*</span>pq.ms, t_start<span class="op">=</span>t_start, t_stop<span class="op">=</span>t_stop</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>bst_i <span class="op">=</span> BinnedSpikeTrain(spikes_i, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>bst_j <span class="op">=</span> BinnedSpikeTrain(spikes_j, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>cc_hist, lags <span class="op">=</span> cross_correlation_histogram( bst_i, bst_j, window<span class="op">=</span>[<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>])</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plot_cross_correlation_histogram(cc_hist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="cross_correlogram_files/figure-html/cell-5-output-1.png" width="585" height="449" class="figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Case 3: The neurons fire with a constant delay</p>
-<div id="472e1ed2" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spikes_j <span class="op">=</span> SpikeTrain(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    times<span class="op">=</span>spikes_i.times<span class="op">+</span>np.random.normal(loc<span class="op">=</span><span class="dv">30</span>, scale<span class="op">=</span><span class="dv">5</span>, size<span class="op">=</span><span class="bu">len</span>(spikes_i))<span class="op">*</span>pq.ms, t_start<span class="op">=</span>t_start, t_stop<span class="op">=</span>t_stop</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>bst_i <span class="op">=</span> BinnedSpikeTrain(spikes_i, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>bst_j <span class="op">=</span> BinnedSpikeTrain(spikes_j, bin_size<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.ms)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>cc_hist, lags <span class="op">=</span> cross_correlation_histogram( bst_i, bst_j, window<span class="op">=</span>[<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>])</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>plot_cross_correlation_histogram(cc_hist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="cross_correlogram_files/figure-html/cell-6-output-1.png" width="585" height="449" class="figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Now load the real data</p>
-<div id="2b83962e" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>sessions <span class="op">=</span> <span class="bu">list</span>((root<span class="op">/</span><span class="st">"data"</span>).glob(<span class="st">"ses*"</span>))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>ses <span class="op">=</span> sessions[<span class="dv">0</span>]</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>spikes <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"spikes.parquet"</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>stimuli <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"stimuli.parquet"</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>n_stimuli <span class="op">=</span> <span class="bu">len</span>(stimuli[<span class="st">'start_time'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Create a neo segment and add the unit spike trains</p>
-<div id="0c50d423" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> stimuli[<span class="st">"start_time"</span>].<span class="bu">min</span>()<span class="op">-</span><span class="dv">1</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> stimuli[<span class="st">"start_time"</span>].<span class="bu">max</span>()<span class="op">+</span><span class="dv">1</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>seg <span class="op">=</span> Segment()</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> unit_id <span class="kw">in</span> spikes[<span class="st">"unit_id"</span>].unique():</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    spikes_unit <span class="op">=</span> spikes[spikes[<span class="st">"unit_id"</span>]<span class="op">==</span>unit_id]</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    spike_train <span class="op">=</span> SpikeTrain(spikes_unit[<span class="st">'spike_time'</span>],units<span class="op">=</span><span class="st">"s"</span>, t_stop<span class="op">=</span>t_stop, t_start<span class="op">=</span>t_start, name<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>unit_id<span class="sc">}</span><span class="ss">-unit_id"</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    seg.spiketrains.append(spike_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Example 1: two neurons that fire in a coordinated way</p>
-<div id="11543dcb" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>bst_i <span class="op">=</span> BinnedSpikeTrain(seg.spiketrains[<span class="dv">10</span>], bin_size<span class="op">=</span><span class="fl">0.01</span><span class="op">*</span>s)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>bst_j <span class="op">=</span> BinnedSpikeTrain(seg.spiketrains[<span class="dv">200</span>], bin_size<span class="op">=</span><span class="fl">0.01</span><span class="op">*</span>s)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>cc_hist, lags <span class="op">=</span> cross_correlation_histogram( bst_i, bst_j, window<span class="op">=</span>[<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>], border_correction<span class="op">=</span><span class="va">False</span>, binary<span class="op">=</span><span class="va">False</span>, kernel<span class="op">=</span><span class="va">None</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>plot_cross_correlation_histogram(cc_hist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="cross_correlogram_files/figure-html/cell-9-output-1.png" width="593" height="449" class="figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Example 2: Two neurons that are not associated</p>
-<div id="947b5760" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>bst_i <span class="op">=</span> BinnedSpikeTrain(seg.spiketrains[<span class="dv">0</span>], bin_size<span class="op">=</span><span class="fl">0.01</span><span class="op">*</span>s)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>bst_j <span class="op">=</span> BinnedSpikeTrain(seg.spiketrains[<span class="dv">2</span>], bin_size<span class="op">=</span><span class="fl">0.01</span><span class="op">*</span>s)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>cc_hist, lags <span class="op">=</span> cross_correlation_histogram( bst_i, bst_j, window<span class="op">=</span>[<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>], border_correction<span class="op">=</span><span class="va">False</span>, binary<span class="op">=</span><span class="va">False</span>, kernel<span class="op">=</span><span class="va">None</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>plot_cross_correlation_histogram(cc_hist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="cross_correlogram_files/figure-html/cell-10-output-1.png" width="585" height="449" class="figure-img"></p>
-</figure>
-</div>
-</div>
+<p>Save the receptive field map to a file</p>
+<div id="9008190b" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>np.save(<span class="ss">f"</span><span class="sc">{</span>unit_id<span class="sc">}</span><span class="ss">_rf.npy"</span>, rf_map)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
 </main>

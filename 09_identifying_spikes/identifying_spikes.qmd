@@ -126,7 +126,7 @@ Finally, we convert the spike times to a continuous time series by creating a `S
 
 ```{python}
 spikes = pd.Series(False, index=df.index)
-spikes.loc[spike_times] = True
+spikes.loc[spike_times.to_numpy().flatten()] = True
 print(f"Found {spikes.sum()} spikes")
 ```
 

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>temporal_profile</title>
+<title>feature_extraction</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -57,16 +57,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="temporal_profile_files/libs/clipboard/clipboard.min.js"></script>
-<script src="temporal_profile_files/libs/quarto-html/quarto.js"></script>
-<script src="temporal_profile_files/libs/quarto-html/popper.min.js"></script>
-<script src="temporal_profile_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="temporal_profile_files/libs/quarto-html/anchor.min.js"></script>
-<link href="temporal_profile_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="temporal_profile_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="temporal_profile_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="temporal_profile_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="temporal_profile_files/libs/bootstrap/bootstrap-113ed821acb9bc3786769aae4e84dd99.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="feature_extraction_files/libs/clipboard/clipboard.min.js"></script>
+<script src="feature_extraction_files/libs/quarto-html/quarto.js"></script>
+<script src="feature_extraction_files/libs/quarto-html/popper.min.js"></script>
+<script src="feature_extraction_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="feature_extraction_files/libs/quarto-html/anchor.min.js"></script>
+<link href="feature_extraction_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="feature_extraction_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="feature_extraction_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="feature_extraction_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="feature_extraction_files/libs/bootstrap/bootstrap-113ed821acb9bc3786769aae4e84dd99.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
@@ -80,120 +80,91 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<div id="74705a80" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="f731f351" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="c4b172da" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>root <span class="op">=</span> Path.cwd().parent.absolute()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Load data from the previous notebook</p>
+<div id="4b6df430" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>waveforms <span class="op">=</span> np.load(<span class="st">"spike_waveforms.npy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Load data for one session</p>
-<div id="3399d2d8" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sessions <span class="op">=</span> <span class="bu">list</span>((root<span class="op">/</span><span class="st">"data"</span>).glob(<span class="st">"ses*"</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ses <span class="op">=</span> sessions[<span class="dv">0</span>]</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>spikes <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"spikes.parquet"</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>stimuli <span class="op">=</span> pd.read_parquet(ses<span class="op">/</span><span class="st">"stimuli.parquet"</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>n_stimuli <span class="op">=</span> <span class="bu">len</span>(stimuli[<span class="st">'start_time'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="finding-the-correct-number-of-features" class="level2">
+<h2 class="anchored" data-anchor-id="finding-the-correct-number-of-features">Finding the correct number of features</h2>
+<p>Initialize <code>PCA</code> to extract <code>n_components</code></p>
+<div id="16e560cd" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>n_components <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA(n_components<span class="op">=</span>n_components)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Select spikes in V1 and pick a single unit</p>
-<div id="dd904627" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>spikes_v1 <span class="op">=</span> spikes[spikes[<span class="st">"brain_area"</span>]<span class="op">==</span><span class="st">"V1"</span>]</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>unit_id <span class="op">=</span> pd.unique(spikes_v1[<span class="st">"unit_id"</span>])[<span class="dv">0</span>]</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>unit_spike_times <span class="op">=</span> spikes_v1.loc[spikes_v1[<span class="st">"unit_id"</span>] <span class="op">==</span> unit_id, <span class="st">"spike_time"</span>].to_numpy()</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>unit_spike_times <span class="op">=</span> np.sort(unit_spike_times)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Create arrays to store PCA features and explained variance</p>
+<div id="ee415374" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>n_spikes, n_channels <span class="op">=</span> waveforms.shape[<span class="dv">1</span>], waveforms.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pca_features <span class="op">=</span> np.zeros((n_spikes, n_components, n_channels))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>var_explained <span class="op">=</span> np.zeros((n_components, n_channels))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>For each stimulus, find the spikes in the window and get their relative times</p>
-<div id="f88fdd7e" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>tmin, tmax <span class="op">=</span> <span class="op">-</span><span class="fl">0.2</span>, <span class="fl">0.5</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>relative_spike_times <span class="op">=</span> []</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t_stim <span class="kw">in</span> stimuli[<span class="st">"start_time"</span>]:</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    window_start <span class="op">=</span> t_stim <span class="op">+</span> tmin</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    window_end <span class="op">=</span> t_stim  <span class="op">+</span>tmax</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find spikes within the window</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    start_idx <span class="op">=</span> np.searchsorted(unit_spike_times, window_start, side<span class="op">=</span><span class="st">'left'</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    stop_idx <span class="op">=</span> np.searchsorted(unit_spike_times, window_end, side<span class="op">=</span><span class="st">'right'</span>)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># compute spike times relative to stimulus and add them to list</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    spikes_in_window <span class="op">=</span> unit_spike_times[start_idx:stop_idx]</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    relative_spike_times.extend(spikes_in_window<span class="op">-</span>t_stim)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For each channel, apply PCA and extract features. PCA expects the data to be organized samples-by-features so we have to transpose the matrix first.</p>
+<div id="18e75ba2" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i_ch <span class="kw">in</span> <span class="bu">range</span>(n_channels):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> waveforms[:,:,i_ch].T</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    pca_features[:,:,i_ch] <span class="op">=</span> pca.fit_transform(X)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    var_explained[:,i_ch] <span class="op">=</span> pca.explained_variance_ratio_</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="88f19767" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create bins</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>bin_size <span class="op">=</span> <span class="fl">0.005</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>n_bins <span class="op">=</span> <span class="bu">int</span>(np.ceil((tmax<span class="op">-</span>tmin) <span class="op">/</span> bin_size))</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> np.linspace(tmin, tmax, n_bins <span class="op">+</span> <span class="dv">1</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># count spikes per bin</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>counts, bin_edges <span class="op">=</span> np.histogram(relative_spike_times, bins<span class="op">=</span>bins)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>bin_centers <span class="op">=</span> (bin_edges[:<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> bin_edges[<span class="dv">1</span>:]) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize to firing rate (Hz)</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>psth <span class="op">=</span> counts <span class="op">/</span> (n_stimuli <span class="op">*</span> bin_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="fe7688af" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plt.plot(bin_centers, psth)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Time [s]"</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Firing Rate [Hz]"</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">0</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="fl">0.25</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Plot the explained variance</p>
+<div id="1a65dd26" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>plt.plot(<span class="bu">range</span>(<span class="dv">1</span>, n_components<span class="op">+</span><span class="dv">1</span>), var_explained, marker<span class="op">=</span><span class="st">"o"</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Component Number"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Explained Variance Ratio"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="temporal_profile_files/figure-html/cell-8-output-1.png" width="585" height="429" class="figure-img"></p>
+<p><img src="feature_extraction_files/figure-html/cell-7-output-1.png" width="589" height="429" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Now do it for all units in V1</p>
-<div id="4868dcb0" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>unit_psths <span class="op">=</span> []</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> unit_id <span class="kw">in</span> pd.unique(spikes_v1[<span class="st">"unit_id"</span>]):</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    unit_spike_times <span class="op">=</span> spikes_v1.loc[spikes_v1[<span class="st">"unit_id"</span>] <span class="op">==</span> unit_id, <span class="st">"spike_time"</span>].to_numpy()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    unit_spike_times <span class="op">=</span> np.sort(unit_spike_times)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    relative_spike_times <span class="op">=</span> []</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t_stim <span class="kw">in</span> stimuli[<span class="st">"start_time"</span>]:</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        window_start <span class="op">=</span> t_stim <span class="op">+</span> tmin</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        window_end <span class="op">=</span> t_stim  <span class="op">+</span>tmax</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Find spikes within the window</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        start_idx <span class="op">=</span> np.searchsorted(unit_spike_times, window_start, side<span class="op">=</span><span class="st">'left'</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        stop_idx <span class="op">=</span> np.searchsorted(unit_spike_times, window_end, side<span class="op">=</span><span class="st">'right'</span>)</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="co"># compute spike times relative to stimulus and add them to list</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        spikes_in_window <span class="op">=</span> unit_spike_times[start_idx:stop_idx]</span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        relative_spike_times.extend(spikes_in_window<span class="op">-</span>t_stim)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    counts, bin_edges <span class="op">=</span> np.histogram(relative_spike_times, bins<span class="op">=</span>bins)</span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    unit_psths.append(counts <span class="op">/</span> (n_stimuli <span class="op">*</span> bin_size))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="extract-and-save-features" class="level2">
+<h2 class="anchored" data-anchor-id="extract-and-save-features">Extract and save features</h2>
+<p>Based on the plot, we can see that 3 components account for most (~80%) of the variance in the data. Now, we extract three components</p>
+<div id="f328dfbd" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n_components <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA(n_components<span class="op">=</span>n_components)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>n_spikes, n_channels <span class="op">=</span> waveforms.shape[<span class="dv">1</span>], waveforms.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>pca_features <span class="op">=</span> np.zeros((n_spikes, n_components, n_channels))</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i_ch <span class="kw">in</span> <span class="bu">range</span>(n_channels):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> waveforms[:,:,i_ch].T</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    pca_features[:,:,i_ch] <span class="op">=</span> pca.fit_transform(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Plot all PSTHs</p>
-<div id="84828939" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> psth <span class="kw">in</span> unit_psths:</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    plt.plot(bin_centers, psth, color<span class="op">=</span><span class="st">"black"</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Time [s]"</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Firing Rate [Hz]"</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">0</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="fl">0.25</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Save the pca features</p>
+<div id="7ccfd356" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>np.save(<span class="st">"pca_features.npy"</span>, pca_features)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="visualization" class="level2">
+<h2 class="anchored" data-anchor-id="visualization">Visualization</h2>
+<p>Plot the first PC for all combinations of channels</p>
+<div id="64752f36" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">2</span>,<span class="dv">3</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="st">'Ch1'</span>,<span class="st">'Ch2'</span>,<span class="st">'Ch3'</span>,<span class="st">'Ch4'</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> np.arange(<span class="dv">0</span>,<span class="dv">4</span>):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> np.arange(i<span class="op">+</span><span class="dv">1</span>,<span class="dv">4</span>):</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        axis <span class="op">=</span> ax.flatten()[p]</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        axis.plot(pca_features[:,<span class="dv">0</span>, i], pca_features[:,<span class="dv">0</span>, j],<span class="st">'.k'</span>, markersize<span class="op">=</span><span class="fl">.7</span>) </span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        axis.<span class="bu">set</span>(xlabel<span class="op">=</span>labels[i], ylabel<span class="op">=</span>labels[j], xlim<span class="op">=</span>(<span class="op">-</span><span class="dv">1500</span>,<span class="dv">1500</span>), ylim<span class="op">=</span>(<span class="op">-</span><span class="dv">1500</span>, <span class="dv">1500</span>), xticks<span class="op">=</span>[], yticks<span class="op">=</span>[])</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> p<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="temporal_profile_files/figure-html/cell-10-output-1.png" width="585" height="429" class="figure-img"></p>
+<p><img src="feature_extraction_files/figure-html/cell-10-output-1.png" width="558" height="407" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Plot the population mean PSTH</p>
-<div id="8d82ae6d" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mean_psth <span class="op">=</span> np.mean(unit_psths, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>plt.plot(bin_centers, mean_psth)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Time [s]"</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Firing Rate [Hz]"</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">0</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="fl">0.25</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="temporal_profile_files/figure-html/cell-11-output-1.png" width="576" height="429" class="figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
+</section>
 
 </main>
 <!-- /main column -->

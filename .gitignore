@@ -1,8 +1,13 @@
 03_receptive_fields/*.npy
-05_indentifying_spikes/spike_times.csv
-05_indentifying_spikes/spike_waveforms.npy
-06_feature_extraction/pca_features.npy
-07_spike_clustering/spike_clusters.csv
+09_identifying_spikes/spike_times.csv
+09_identifying_spikes/spike_waveforms.npy
+10_feature_extraction/pca_features.npy
+11_spike_clustering/spike_clusters.csv
+12_identifying_units/units.csv
 data
 *_files
 *.nix
+.quarto
+*.quarto_ipynb
+
+/.quarto/
