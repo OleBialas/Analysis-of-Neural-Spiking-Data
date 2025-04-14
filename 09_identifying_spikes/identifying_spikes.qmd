@@ -11,6 +11,7 @@ Load the raw recordings
 
 ```{python}
 df = pd.read_parquet("tetrode_recordings", columns=["Ch1", "Ch2", "Ch3", "Ch4"])
+df.head()
 ```
 
 Create a vector of time points and add it to the data frame and use it as index.

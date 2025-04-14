@@ -10,7 +10,7 @@ import elephant.unitary_event_analysis as ue
 import elephant.conversion as conv
 from elephant.spike_train_generation import StationaryPoissonProcess
 from viziphant.unitary_event_analysis import plot_ue
-np.random.seed(13) # Fix random seed to guarantee fixed output
+np.random.seed(15) # Fix random seed to guarantee fixed output
 %matplotlib inline
 ```
 
@@ -34,6 +34,7 @@ base_spikes_i, base_spikes_j = base_spiking.generate_n_spiketrains(2)
 Then generate the coincident spikes with a given jitter
 
 ```{python}
+# Dont randomly inject spikes, instead use nonstationarypoissonprocess
 coincident_spiking = StationaryPoissonProcess(coincidence_rate, t_start, t_stop)
 coincident_spikes_i = coincident_spiking.generate_spiketrain()
 coincident_spikes_j = SpikeTrain(
@@ -100,7 +101,7 @@ plot_ue(trials, UE, significance_level=0.05)
 ```
 
 Now load the real data
-
+:q
 ```{python}
 root = Path.cwd().parent.absolute()
 sessions = list((root/"data").glob("ses*"))
@@ -140,3 +141,6 @@ UE = ue.jointJ_window_analysis( trials, bin_size=10*pq.ms, win_size=100*pq.ms, w
 plot_ue(trials, UE, significance_level=0.05)
 ```
 
+```{python}
+# Can UE be applied to a neuron with itself? 
+```

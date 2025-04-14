@@ -10,6 +10,14 @@ from matplotlib import pyplot as plt
 root = Path.cwd().parent.absolute()
 ```
 
+```{python}
+# Use existing tools to model the ditribution
+# statsmodels
+# scipy.stats
+# scikit-learn
+```
+
+
 Load data for one session
 ```{python}
 sessions = list((root/"data").glob("ses*"))
@@ -65,14 +73,13 @@ Calculate the average receptive field map
 avg_counts_per_loc = stimuli.groupby(["y_position", "x_position"])[
     "spike_count"
 ].mean()
-
+print(avg_counts_per_loc)
 rf_map = np.full((n_y, n_x), np.nan)  # initalize 2D map
 
 for (y, x), avg_count in avg_counts_per_loc.items():
-    if y in y_map and x in x_map:
-        row_idx = y_map[y]
-        col_idx = x_map[x]
-        rf_map[row_idx, col_idx] = avg_count
+    row_idx = y_map[y]
+    col_idx = x_map[x]
+    rf_map[row_idx, col_idx] = avg_count
 ```
 
 Plot the receptive field

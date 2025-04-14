@@ -39,6 +39,7 @@ for ses in sessions:
     # filter spikes and append them to the data frames
     df_spikes.append(spikes[spike_is_within_window.any(axis=1)])
     df_baseline.append(spikes[spike_is_within_baseline.any(axis=1)])
+print(spikes.head())
 # concatenate the data into one df
 df_spikes = pd.concat(df_spikes)
 df_baseline = pd.concat(df_baseline)

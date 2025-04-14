@@ -40,8 +40,13 @@ for t_stim in stimuli["start_time"]:
     # compute spike times relative to stimulus and add them to list
     spikes_in_window = unit_spike_times[start_idx:stop_idx]
     relative_spike_times.extend(spikes_in_window-t_stim)
+print(relative_spike_times)
 ```
 
+
+```{python}
+# Add bootsrap CI?
+```
 
 ```{python}
 # create bins

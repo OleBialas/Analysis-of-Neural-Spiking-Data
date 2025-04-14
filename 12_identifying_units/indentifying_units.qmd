@@ -115,7 +115,7 @@ plt.show()
 Identify Clusters that could be units
 
 ```{python}
-unit_clusters = [3,5,8,9]
+unit_clusters = [3,5,8]
 ```
 
 ## Visualize the clusters
@@ -153,3 +153,6 @@ df_units.drop(columns=["Cluster", "Probability"])
 df.to_csv("units.csv", index=False)
 ```
 
+```{python}
+# save all data with metrics
+```
