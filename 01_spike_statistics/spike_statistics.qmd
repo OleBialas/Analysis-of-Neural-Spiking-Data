@@ -1,0 +1,292 @@
+---
+title: "Spike Statistics of Simulated Neurons"
+engine: Jupyter
+format: html
+number-sections: true
+number-depth: 2
+---
+
+```{python}
+import numpy as np
+from matplotlib import pyplot as plt
+from quantities.units import frequency
+from scipy.stats import poisson, expon
+import quantities as pq
+from neo.core import AnalogSignal
+from elephant.spike_train_generation import StationaryPoissonProcess, NonStationaryPoissonProcess
+np.random.seed(100)
+%matplotlib inline
+```
+
+## Working whith Physical Quantities
+
+| Code | Description |
+| --- | --- |
+| freq = `2 * pq.Hz` | Define a quantity of 2 Hertz and assign it to the variable `freq` |
+| time = `2500 * pq.ms` | Define a quantity of 2500 milliseconds and assign it to the variable `time` |
+| `time.units` | Get the unit of `time` |
+| `time.magnitude` | Get the magnitude of `time` |
+
+:::{#exr-}
+Create a variable called `firing_rate` and assign it the value **5 Hertz**.
+:::
+
+```{python}
+firing_rate = 5 * pq.Hz
+```
+
+:::{#exr-}
+Create a variable called `t_start` and assign it the value **100 milliseconds**.
+:::
+
+```{python}
+t_start = 100 * pq.ms
+```
+
+:::{#exr-}
+Create a variable called `t_stop` and assign it the value **3 seconds**
+:::
+
+```{python}
+t_stop = 3 * pq.s
+```
+
+:::{#exr-}
+Subtract t_start from t_stop and assign the result to a variable called `duration`. Print the magnitude and unit of that variable.
+:::
+
+```{python}
+duration = t_stop - t_start
+print(duration.magnitude, duration.units)
+```
+
+:::{#exr-}
+Multiply the variable `duration` by `firing_rate`. Simplify the unit of the result
+:::
+
+```{python}
+x = duration * firing_rate
+print(x.simplified)
+```
+
+:::{#exr-}
+Try adding the variables `firing_rate` and `duration`. What error message do you observe?
+:::
+
+```{python}
+#| eval: false
+firing_rate+duration
+```
+
+
+## Simulating and Visualizing Spike Trains
+
+| Code | Description |
+| --- | --- |
+| `neuron = StationaryPoissonProcess(rate=2*pq.Hz, t_start=0*pq.s, t_stop=3*pq.s)` | Define a stationary Poisson Process with a mean `rate` of 2 Hz that starts at 0s and ends at 3s |
+| `st` = neuron.generate_spiketrain()` | Generate a spike train from a Poisson `neuron` and assign the returned `SpikeTrain` object to the variable `st` |
+| `st.times` | Get the spike times of the `SpikeTrain` object stored in the varable `st` |
+| `sts` = neuron.generate_n_spiketrains(5)` | Generate 5 spike trains from a Poisson `neuron` and assign the returned list of `SpikeTrain` objects to the variable `sts` |
+
+
+:::{#exr-}
+Simulate a `StationaryPoissonProcess` with a `rate` of 5 Hz that starts at 1 s and ends at 2.5 s and assign it to a variable called `neuron1`.
+:::
+
+```{python}
+neuron1 = StationaryPoissonProcess(rate=5*pq.Hz, t_start=1*pq.s, t_stop=2.5*pq.s)
+```
+
+:::{#exr-}
+Generate a spike train from `neuron1` and assign it to the variable `st1` and print the spike `.times`.
+:::
+
+```{python}
+st1 = neuron1.generate_spiketrain()
+print(st1.times)
+```
+
+
+```{python}
+plt.eventplot(st1.times)
+```
+
+
+## Empirical and Theoretical Poisson Distributions
+
+| Code | Description |
+| --- | --- |
+| x = `np.arange(10)` | Generate a vector with the numbers 0 to (not including) 10 and assign it to the variable `x` |
+| `counts, bin_edges = np.hist(values, x)` | Generate a histogram of the `values` to count how many observations fall into each of the bins in `x` and return the `counts` and `bin_egdes` |
+| `pmf_values = poisson.pmf(k=k, mu=mu)` | Get probabilities for observing `k` events under a Poisson distribution with an average rate of `mu` |
+| `plt.bar(x,y)` | Draw a bar plot with bars at the positions `x` with heights `y` |
+| `plt.xlabel("x-axis")`| Label the x-axis of the oplot as `"x-axis"` |
+| `plt.xticks(x)` | Draw the ticks on the x-axis at the positions `x` |
+| `plt.legend()` | Create a legend for the plot |
+
+:::{#exr-}
+Simulate a `StationaryPoissonProcess` with a `rate` of 0.5 Hz that starts at 0 s and ends at 5 s and assign it to a variable called `neuron2`. Generate 1000 spike trains from `neuron2` and assign them to a variable called `sts2`.
+:::
+
+```{python}
+neuron2 = StationaryPoissonProcess(rate=0.5*pq.Hz, t_start=0*pq.s, t_stop=3*pq.s)
+sts2 = neuron2.generate_n_spiketrains(100)
+```
+
+:::{#exr-}
+Compute the number of spikes (i.e. the `len()` of each spike train) and store them in a list called `n_spikes`.
+:::
+
+```{python}
+n_spikes = [len(st) for st in sts2]
+```
+
+:::{#exr-}
+Use `np.histogram` to count how often you observed spike number between 0 and 8 and make a `bar` plot.
+:::
+
+```{python}
+k = np.arange(10)
+hist, bins = np.histogram(n_spikes, bins=k)
+plt.bar(bins[:-1], hist)
+plt.xticks(bins[:-1])
+plt.xlabel("Number of Spikes")
+plt.ylabel("Count")
+```
+
+:::{#exr-}
+Plot the theoretical poisson distribution for neuron2
+:::
+
+```{python}
+mu = neuron2.rate * (neuron2.t_stop-neuron2.t_start)
+pmf_values = poisson.pmf(k=k, mu=mu)
+plt.bar(k, pmf_values)
+plt.xlabel("Number of Events (k)")
+plt.ylabel("Probability P(X=k)")
+plt.xticks(k);
+```
+
+:::{#exr-}
+Plot the theoretical distribution together with the empirical distribution
+:::
+
+```{python}
+plt.bar(bins[:-1], hist/hist.sum(), alpha=0.5, label="empirical")
+plt.bar(k, pmf_values, alpha=0.5, label="theoretical")
+plt.xlabel("Number of Spikes")
+plt.ylabel("Probability")
+plt.legend()
+```
+
+## Inter-Spike Intervals and the Coefficient of Variation
+
+| Code | Description |
+| --- | --- |
+| `np.diff(x)` | Calculate the difference between subsequent elements of `x` |
+| `np.std(x)` | Calculate the standard deviation of `x` | 
+| `np.mean(x)` | Calculate the mean of `x` | 
+
+:::{#exr-}
+Simulate a `StationaryPoissonProcess` with a `rate` of 5 Hz that starts at 0 s and ends at 2000 s and assign it to a variable called `neuron4`.
+Generate a spike train from `neuron2` and compute the inter-spike intervals.
+:::
+
+```{python}
+neuron4 = StationaryPoissonProcess(rate=5*pq.Hz, t_start=0*pq.s, t_stop=2000*pq.s)
+st4 = neuron4.generate_spiketrain()
+isi4 = np.diff(st4.times.magnitude)
+```
+
+:::{#exr-}
+Simulate a `StationaryPoissonProcess` with a `rate` of 5 Hz that starts at 0 s and ends at 1 s and assign it to a variable called `neuron5`.
+Generate 1000 spike trains from `neuron5` and compute the coefficient of variation for each one.
+:::
+
+```{python}
+neuron5 = StationaryPoissonProcess(rate=5*pq.Hz, t_start=0*pq.s, t_stop=500*pq.s)
+sts5 = neuron5.generate_n_spiketrains(1000)
+isi5 = [np.diff(st.times.magnitude) for st in sts5]
+cv5 = [np.std(isi)/np.mean(isi) for isi in isi5]
+plt.hist(cv5, bins=25)
+plt.axvline(x=1, ymin=0, ymax=1, color="black")
+```
+
+:::{#exr-}
+Simulate a `StationaryPoissonProcess` with a `rate` of 5 Hz that starts at 0 s, ends at 1 s and has a refractory period of 2 ms and assign it to a variable called `neuron6`.
+Generate 1000 spike trains from `neuron6` and compute the coefficient of variation for each one and plot their distribution.
+:::
+
+```{python}
+neuron6 = StationaryPoissonProcess(rate=5*pq.Hz, t_start=0*pq.s, t_stop=500*pq.s, refractory_period=2*pq.ms)
+sts6 = neuron6.generate_n_spiketrains(1000)
+isi6 = [np.diff(st.times.magnitude) for st in sts6]
+cv6 = [np.std(isi)/np.mean(isi) for isi in isi6]
+plt.hist(cv6, bins=25)
+plt.axvline(x=1, ymin=0, ymax=1, color="black")
+```
+
+## Simulating Bursting Neurons
+
+| Code | Description |
+| --- | --- |
+| `rate = AnalogSignal( signal=x, sampling_rate=1000*pq.Hz, t_start=0*pq.s, t_stop=5*pq.Hz)` | Generate an AnalogSignal from the values `x` at a sampling rate of 1000 Hz that goes from 0 s to 5 s and assign it to the variable rate |
+| `neuron = NonStationaryPoissonProcess(rate_signal=rate)` | Generate a non-stationary Poisson process with a time-varying `rate` and assign it to the variable `neuron` |
+
+
+:::{#exr-}
+Creata a sine wave with a `frequency` of 0.5 Hz and an `amplitude` of 5 Hz, that goes from 0 s to 5 s at a sampling rate of 1 kHz. Then, add the `amplitude` to the sine wave and plot the resulting signal
+:::
+
+```{python}
+# How do we reverse the process - estimating the time-varying firing rate from the observed spikes?
+t_start = 0 * pq.s
+t_stop = 5 * pq.s
+frequency = 0.5 * pq.Hz
+amplitude = 5 * pq.Hz
+sampling_rate = 1000 * pq.Hz
+duration = t_stop - t_start
+n_samples = int(duration * sampling_rate)
+t = np.linspace(t_start, t_stop, n_samples)
+signal = amplitude*np.sin(2*np.pi*frequency*t)
+signal += amplitude 
+plt.plot(t, signal)
+```
+
+:::{#exr-}
+Convert the sine wave to an `AnalogSignal` and simulate a `NonStationaryPoissonProcess` with the `AnalogSignal` as `rate_signal`
+:::
+
+```{python}
+rate_signal = AnalogSignal(
+    signal=signal,
+    sampling_rate=sampling_rate,
+    t_start=t_start,
+    t_stop=t_stop,
+    )
+neuron7 = NonStationaryPoissonProcess(rate_signal=rate_signal)
+```
+
+:::{#exr-}
+Plot the modulation frequency together with the spike times
+:::
+
+```{python}
+fig, ax = plt.subplots(2, sharex=True)
+spike_times = neuron7.generate_spiketrain().times
+ax[0].plot(rate_signal.times, rate_signal)
+ax[1].eventplot(spike_times)
+```
+
+:::{#exr-}
+Genenerate 1000 spike trains from this bursting neuron, compute the CV for each spike train and plot their distribution
+:::
+
+```{python}
+sts7 = neuron7.generate_n_spiketrains(1000)
+isi7 = [np.diff(st.times.magnitude) for st in sts7]
+cv7 = [np.std(isi)/np.mean(isi) for isi in isi7]
+print(cv7)
+plt.hist(cv7, bins=25)
+plt.axvline(x=1, ymin=0, ymax=1, color="black")
+```

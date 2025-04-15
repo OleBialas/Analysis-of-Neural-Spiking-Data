@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Spike Statistics of Simulated Neurons</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="spike_statistics_files/libs/clipboard/clipboard.min.js"></script>
+<script src="spike_statistics_files/libs/quarto-html/quarto.js"></script>
+<script src="spike_statistics_files/libs/quarto-html/popper.min.js"></script>
+<script src="spike_statistics_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="spike_statistics_files/libs/quarto-html/anchor.min.js"></script>
+<link href="spike_statistics_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="spike_statistics_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="spike_statistics_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="spike_statistics_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="spike_statistics_files/libs/bootstrap/bootstrap-113ed821acb9bc3786769aae4e84dd99.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Spike Statistics of Simulated Neurons</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div id="b27362e0" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> quantities.units <span class="im">import</span> frequency</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> poisson, expon</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> quantities <span class="im">as</span> pq</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neo.core <span class="im">import</span> AnalogSignal</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> elephant.spike_train_generation <span class="im">import</span> StationaryPoissonProcess, NonStationaryPoissonProcess</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">100</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="working-whith-physical-quantities" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="working-whith-physical-quantities"><span class="header-section-number">1</span> Working whith Physical Quantities</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>freq = <code>2 * pq.Hz</code></td>
+<td>Define a quantity of 2 Hertz and assign it to the variable <code>freq</code></td>
+</tr>
+<tr class="even">
+<td>time = <code>2500 * pq.ms</code></td>
+<td>Define a quantity of 2500 milliseconds and assign it to the variable <code>time</code></td>
+</tr>
+<tr class="odd">
+<td><code>time.units</code></td>
+<td>Get the unit of <code>time</code></td>
+</tr>
+<tr class="even">
+<td><code>time.magnitude</code></td>
+<td>Get the magnitude of <code>time</code></td>
+</tr>
+</tbody>
+</table>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 1</strong></span> Create a variable called <code>firing_rate</code> and assign it the value <strong>5 Hertz</strong>.</p>
+</div>
+<div id="7829f3ae" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>firing_rate <span class="op">=</span> <span class="dv">5</span> <span class="op">*</span> pq.Hz</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 2</strong></span> Create a variable called <code>t_start</code> and assign it the value <strong>100 milliseconds</strong>.</p>
+</div>
+<div id="60cd6f58" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> <span class="dv">100</span> <span class="op">*</span> pq.ms</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 3</strong></span> Create a variable called <code>t_stop</code> and assign it the value <strong>3 seconds</strong></p>
+</div>
+<div id="7be46992" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> <span class="dv">3</span> <span class="op">*</span> pq.s</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 4</strong></span> Subtract t_start from t_stop and assign the result to a variable called <code>duration</code>. Print the magnitude and unit of that variable.</p>
+</div>
+<div id="05d19119" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>duration <span class="op">=</span> t_stop <span class="op">-</span> t_start</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(duration.magnitude, duration.units)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2.9 1.0 s</code></pre>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 5</strong></span> Multiply the variable <code>duration</code> by <code>firing_rate</code>. Simplify the unit of the result</p>
+</div>
+<div id="5f2d1e89" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> duration <span class="op">*</span> firing_rate</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(x.simplified)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>14.5 dimensionless</code></pre>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 6</strong></span> Try adding the variables <code>firing_rate</code> and <code>duration</code>. What error message do you observe?</p>
+</div>
+<div id="e0a8fa5d" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>firing_rate<span class="op">+</span>duration</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="simulating-and-visualizing-spike-trains" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="simulating-and-visualizing-spike-trains"><span class="header-section-number">2</span> Simulating and Visualizing Spike Trains</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>neuron = StationaryPoissonProcess(rate=2*pq.Hz, t_start=0*pq.s, t_stop=3*pq.s)</code></td>
+<td>Define a stationary Poisson Process with a mean <code>rate</code> of 2 Hz that starts at 0s and ends at 3s</td>
+</tr>
+<tr class="even">
+<td><code>st</code> = neuron.generate_spiketrain()<code>| Generate a spike train from a Poisson</code>neuron<code>and assign the returned</code>SpikeTrain<code>object to the variable</code>st<code>| |</code>st.times<code>| Get the spike times of the</code>SpikeTrain<code>object stored in the varable</code>st<code>| |</code>sts<code>= neuron.generate_n_spiketrains(5)</code></td>
+<td>Generate 5 spike trains from a Poisson <code>neuron</code> and assign the returned list of <code>SpikeTrain</code> objects to the variable <code>sts</code></td>
+</tr>
+</tbody>
+</table>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 7</strong></span> Simulate a <code>StationaryPoissonProcess</code> with a <code>rate</code> of 5 Hz that starts at 1 s and ends at 2.5 s and assign it to a variable called <code>neuron1</code>.</p>
+</div>
+<div id="bfffdfb9" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>neuron1 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.Hz, t_start<span class="op">=</span><span class="dv">1</span><span class="op">*</span>pq.s, t_stop<span class="op">=</span><span class="fl">2.5</span><span class="op">*</span>pq.s)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 8</strong></span> Generate a spike train from <code>neuron1</code> and assign it to the variable <code>st1</code> and print the spike <code>.times</code>.</p>
+</div>
+<div id="8d50160a" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>st1 <span class="op">=</span> neuron1.generate_spiketrain()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(st1.times)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1.15679167 1.22204005 1.33254937 1.70512675 1.70607276 1.73199637
+ 1.9541834  2.30375422 2.33315435] s</code></pre>
+</div>
+</div>
+<div id="8409b91c" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>plt.eventplot(st1.times)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-11-output-1.png" width="579" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="empirical-and-theoretical-poisson-distributions" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="empirical-and-theoretical-poisson-distributions"><span class="header-section-number">3</span> Empirical and Theoretical Poisson Distributions</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>x = <code>np.arange(10)</code></td>
+<td>Generate a vector with the numbers 0 to (not including) 10 and assign it to the variable <code>x</code></td>
+</tr>
+<tr class="even">
+<td><code>counts, bin_edges = np.hist(values, x)</code></td>
+<td>Generate a histogram of the <code>values</code> to count how many observations fall into each of the bins in <code>x</code> and return the <code>counts</code> and <code>bin_egdes</code></td>
+</tr>
+<tr class="odd">
+<td><code>pmf_values = poisson.pmf(k=k, mu=mu)</code></td>
+<td>Get probabilities for observing <code>k</code> events under a Poisson distribution with an average rate of <code>mu</code></td>
+</tr>
+<tr class="even">
+<td><code>plt.bar(x,y)</code></td>
+<td>Draw a bar plot with bars at the positions <code>x</code> with heights <code>y</code></td>
+</tr>
+<tr class="odd">
+<td><code>plt.xlabel("x-axis")</code></td>
+<td>Label the x-axis of the oplot as <code>"x-axis"</code></td>
+</tr>
+<tr class="even">
+<td><code>plt.xticks(x)</code></td>
+<td>Draw the ticks on the x-axis at the positions <code>x</code></td>
+</tr>
+<tr class="odd">
+<td><code>plt.legend()</code></td>
+<td>Create a legend for the plot</td>
+</tr>
+</tbody>
+</table>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 9</strong></span> Simulate a <code>StationaryPoissonProcess</code> with a <code>rate</code> of 0.5 Hz that starts at 0 s and ends at 5 s and assign it to a variable called <code>neuron2</code>. Generate 1000 spike trains from <code>neuron2</code> and assign them to a variable called <code>sts2</code>.</p>
+</div>
+<div id="de4ac85f" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>neuron2 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span><span class="fl">0.5</span><span class="op">*</span>pq.Hz, t_start<span class="op">=</span><span class="dv">0</span><span class="op">*</span>pq.s, t_stop<span class="op">=</span><span class="dv">3</span><span class="op">*</span>pq.s)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>sts2 <span class="op">=</span> neuron2.generate_n_spiketrains(<span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 10</strong></span> Compute the number of spikes (i.e.&nbsp;the <code>len()</code> of each spike train) and store them in a list called <code>n_spikes</code>.</p>
+</div>
+<div id="a59a7763" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>n_spikes <span class="op">=</span> [<span class="bu">len</span>(st) <span class="cf">for</span> st <span class="kw">in</span> sts2]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 11</strong></span> Use <code>np.histogram</code> to count how often you observed spike number between 0 and 8 and make a <code>bar</code> plot.</p>
+</div>
+<div id="ddc8bf47" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> np.arange(<span class="dv">10</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>hist, bins <span class="op">=</span> np.histogram(n_spikes, bins<span class="op">=</span>k)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>plt.bar(bins[:<span class="op">-</span><span class="dv">1</span>], hist)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>plt.xticks(bins[:<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of Spikes"</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Count"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="33">
+<pre><code>Text(0, 0.5, 'Count')</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-14-output-2.png" width="585" height="429" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 12</strong></span> Plot the theoretical poisson distribution for neuron2</p>
+</div>
+<div id="c968211a" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> neuron2.rate <span class="op">*</span> (neuron2.t_stop<span class="op">-</span>neuron2.t_start)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>pmf_values <span class="op">=</span> poisson.pmf(k<span class="op">=</span>k, mu<span class="op">=</span>mu)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>plt.bar(k, pmf_values)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of Events (k)"</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Probability P(X=k)"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>plt.xticks(k)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-15-output-1.png" width="597" height="433" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 13</strong></span> Plot the theoretical distribution together with the empirical distribution</p>
+</div>
+<div id="61fb3326" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>plt.bar(bins[:<span class="op">-</span><span class="dv">1</span>], hist<span class="op">/</span>hist.<span class="bu">sum</span>(), alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">"empirical"</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>plt.bar(k, pmf_values, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">"theoretical"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of Spikes"</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Probability"</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>plt.legend()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-16-output-1.png" width="597" height="433" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="inter-spike-intervals-and-the-coefficient-of-variation" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="inter-spike-intervals-and-the-coefficient-of-variation"><span class="header-section-number">4</span> Inter-Spike Intervals and the Coefficient of Variation</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>np.diff(x)</code></td>
+<td>Calculate the difference between subsequent elements of <code>x</code></td>
+</tr>
+<tr class="even">
+<td><code>np.std(x)</code></td>
+<td>Calculate the standard deviation of <code>x</code></td>
+</tr>
+<tr class="odd">
+<td><code>np.mean(x)</code></td>
+<td>Calculate the mean of <code>x</code></td>
+</tr>
+</tbody>
+</table>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 14</strong></span> Simulate a <code>StationaryPoissonProcess</code> with a <code>rate</code> of 5 Hz that starts at 0 s and ends at 2000 s and assign it to a variable called <code>neuron4</code>. Generate a spike train from <code>neuron2</code> and compute the inter-spike intervals.</p>
+</div>
+<div id="11cc8a23" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>neuron4 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.Hz, t_start<span class="op">=</span><span class="dv">0</span><span class="op">*</span>pq.s, t_stop<span class="op">=</span><span class="dv">2000</span><span class="op">*</span>pq.s)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>st4 <span class="op">=</span> neuron4.generate_spiketrain()</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>isi4 <span class="op">=</span> np.diff(st4.times.magnitude)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 15</strong></span> Simulate a <code>StationaryPoissonProcess</code> with a <code>rate</code> of 5 Hz that starts at 0 s and ends at 1 s and assign it to a variable called <code>neuron5</code>. Generate 1000 spike trains from <code>neuron5</code> and compute the coefficient of variation for each one.</p>
+</div>
+<div id="09f841a6" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>neuron5 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.Hz, t_start<span class="op">=</span><span class="dv">0</span><span class="op">*</span>pq.s, t_stop<span class="op">=</span><span class="dv">500</span><span class="op">*</span>pq.s)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>sts5 <span class="op">=</span> neuron5.generate_n_spiketrains(<span class="dv">1000</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>isi5 <span class="op">=</span> [np.diff(st.times.magnitude) <span class="cf">for</span> st <span class="kw">in</span> sts5]</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>cv5 <span class="op">=</span> [np.std(isi)<span class="op">/</span>np.mean(isi) <span class="cf">for</span> isi <span class="kw">in</span> isi5]</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>plt.hist(cv5, bins<span class="op">=</span><span class="dv">25</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">1</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-18-output-1.png" width="575" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 16</strong></span> Simulate a <code>StationaryPoissonProcess</code> with a <code>rate</code> of 5 Hz that starts at 0 s, ends at 1 s and has a refractory period of 2 ms and assign it to a variable called <code>neuron6</code>. Generate 1000 spike trains from <code>neuron6</code> and compute the coefficient of variation for each one and plot their distribution.</p>
+</div>
+<div id="2d065ff0" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>neuron6 <span class="op">=</span> StationaryPoissonProcess(rate<span class="op">=</span><span class="dv">5</span><span class="op">*</span>pq.Hz, t_start<span class="op">=</span><span class="dv">0</span><span class="op">*</span>pq.s, t_stop<span class="op">=</span><span class="dv">500</span><span class="op">*</span>pq.s, refractory_period<span class="op">=</span><span class="dv">2</span><span class="op">*</span>pq.ms)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>sts6 <span class="op">=</span> neuron6.generate_n_spiketrains(<span class="dv">1000</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>isi6 <span class="op">=</span> [np.diff(st.times.magnitude) <span class="cf">for</span> st <span class="kw">in</span> sts6]</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>cv6 <span class="op">=</span> [np.std(isi)<span class="op">/</span>np.mean(isi) <span class="cf">for</span> isi <span class="kw">in</span> isi6]</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>plt.hist(cv6, bins<span class="op">=</span><span class="dv">25</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">1</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-19-output-1.png" width="575" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="simulating-bursting-neurons" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="simulating-bursting-neurons"><span class="header-section-number">5</span> Simulating Bursting Neurons</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rate = AnalogSignal( signal=x, sampling_rate=1000*pq.Hz, t_start=0*pq.s, t_stop=5*pq.Hz)</code></td>
+<td>Generate an AnalogSignal from the values <code>x</code> at a sampling rate of 1000 Hz that goes from 0 s to 5 s and assign it to the variable rate</td>
+</tr>
+<tr class="even">
+<td><code>neuron = NonStationaryPoissonProcess(rate_signal=rate)</code></td>
+<td>Generate a non-stationary Poisson process with a time-varying <code>rate</code> and assign it to the variable <code>neuron</code></td>
+</tr>
+</tbody>
+</table>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 17</strong></span> Creata a sine wave with a <code>frequency</code> of 0.5 Hz and an <code>amplitude</code> of 5 Hz, that goes from 0 s to 5 s at a sampling rate of 1 kHz. Then, add the <code>amplitude</code> to the sine wave and plot the resulting signal</p>
+</div>
+<div id="2586f5ec" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How do we reverse the process - estimating the time-varying firing rate from the observed spikes?</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>t_start <span class="op">=</span> <span class="dv">0</span> <span class="op">*</span> pq.s</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>t_stop <span class="op">=</span> <span class="dv">5</span> <span class="op">*</span> pq.s</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>frequency <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> pq.Hz</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>amplitude <span class="op">=</span> <span class="dv">5</span> <span class="op">*</span> pq.Hz</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>sampling_rate <span class="op">=</span> <span class="dv">1000</span> <span class="op">*</span> pq.Hz</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>duration <span class="op">=</span> t_stop <span class="op">-</span> t_start</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> <span class="bu">int</span>(duration <span class="op">*</span> sampling_rate)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> np.linspace(t_start, t_stop, n_samples)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>signal <span class="op">=</span> amplitude<span class="op">*</span>np.sin(<span class="dv">2</span><span class="op">*</span>np.pi<span class="op">*</span>frequency<span class="op">*</span>t)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>signal <span class="op">+=</span> amplitude </span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>plt.plot(t, signal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-20-output-1.png" width="566" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 18</strong></span> Convert the sine wave to an <code>AnalogSignal</code> and simulate a <code>NonStationaryPoissonProcess</code> with the <code>AnalogSignal</code> as <code>rate_signal</code></p>
+</div>
+<div id="2f68a955" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>rate_signal <span class="op">=</span> AnalogSignal(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    signal<span class="op">=</span>signal,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    sampling_rate<span class="op">=</span>sampling_rate,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    t_start<span class="op">=</span>t_start,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    t_stop<span class="op">=</span>t_stop,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>neuron7 <span class="op">=</span> NonStationaryPoissonProcess(rate_signal<span class="op">=</span>rate_signal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 19</strong></span> Plot the modulation frequency together with the spike times</p>
+</div>
+<div id="2a539b53" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">2</span>, sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>spike_times <span class="op">=</span> neuron7.generate_spiketrain().times</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(rate_signal.times, rate_signal)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].eventplot(spike_times)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-22-output-1.png" width="571" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="exr-" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 20</strong></span> Genenerate 1000 spike trains from this bursting neuron, compute the CV for each spike train and plot their distribution</p>
+</div>
+<div id="9bee6f7f" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>sts7 <span class="op">=</span> neuron7.generate_n_spiketrains(<span class="dv">1000</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>isi7 <span class="op">=</span> [np.diff(st.times.magnitude) <span class="cf">for</span> st <span class="kw">in</span> sts7]</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>cv7 <span class="op">=</span> [np.std(isi)<span class="op">/</span>np.mean(isi) <span class="cf">for</span> isi <span class="kw">in</span> isi7]</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cv7)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>plt.hist(cv7, bins<span class="op">=</span><span class="dv">25</span>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>plt.axvline(x<span class="op">=</span><span class="dv">1</span>, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span><span class="dv">1</span>, color<span class="op">=</span><span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1.5642861565263295, 1.411216013376644, 1.4080026942867205, 1.2463764930091024, 1.867590434683841, 1.2153159785566194, 1.481078273712019, 1.2987634555642478, 1.4116557035872215, 1.1901882029573638, 1.369619628013871, 1.4294804235504015, 1.1466885635326034, 1.4649999458857583, 1.3879406569350834, 1.2133982463704267, 1.0975520320369394, 1.04376057736345, 1.700077223508106, 1.3594612694887205, 1.430093235785914, 1.3241672008201872, 1.3141748359067515, 1.5083308753026394, 1.4359619281027074, 1.200467082193088, 1.6097017494548274, 1.1498467206787044, 1.3405578380715086, 1.6042853573298745, 1.4451953519552623, 1.4393315232674546, 1.149663060749358, 1.014369873212033, 1.3609704191568819, 1.2970977177284373, 1.6385761275886908, 1.4084979534544775, 1.1319239682158238, 1.338788512086189, 1.1264506216840824, 1.3986809605746282, 1.2998668705254448, 1.3531888752664314, 1.4755053960464726, 1.4668578985997622, 0.8915686301366139, 1.1425781952558647, 1.493083791264836, 1.5187686227811612, 1.417758882870048, 1.7220047132532184, 1.3024762372251102, 1.5326120555664877, 1.6109022613590611, 1.2309559938563008, 1.5474923791436113, 1.504930227184551, 1.296289990723398, 1.1640497985368907, 1.0735179718948198, 1.4675769723816725, 1.2737748133072202, 1.8110329552693119, 1.6001566047989164, 1.3948601582315947, 1.3257863008424362, 1.2242954527158914, 1.3294783545296114, 1.3473973702453328, 1.8842362130486479, 1.8426977661975383, 1.486586646903037, 0.9940401638303642, 1.2969749710757315, 1.8936178678112332, 1.4273815883243697, 0.7154025969692556, 0.9730885260638933, 1.362858113156966, 1.4749530038936303, 1.022553613049021, 1.3074339410658768, 1.804105120568187, 1.281806283649065, 1.271238361766923, 1.426394326403077, 1.861498558498577, 1.4369349120836084, 1.5065812724985452, 1.2022537909576934, 1.2177876811362531, 1.1290258034265632, 1.173552423948813, 1.3012871713772047, 1.0412390247035408, 1.5397684585925122, 1.4410348750123594, 1.4636967074514016, 1.3761603705062313, 1.2646041486810122, 1.3732518685449742, 1.4847194368375987, 0.9899208545723325, 1.173231387990325, 1.2166738214135315, 1.2474801759413015, 1.98531534027313, 1.6091001570546795, 1.3474523707998365, 1.8438081437312193, 1.3831437586200395, 1.522929168624414, 1.325109357905321, 1.5582903337909888, 1.5011432237193416, 1.4827247590822306, 1.6707840729121661, 1.3331375549146423, 1.1876030178617016, 1.1184595749144604, 1.1404876570444287, 1.027390799745669, 1.6171306356397512, 1.7843626515408177, 1.5308159951508573, 1.292198358512401, 1.7898817788153676, 1.4924635718842525, 1.2256842344683463, 1.635857346112528, 1.2605734457577078, 1.473043252558481, 1.558091353308893, 1.65727655931081, 1.351465661236407, 1.3254947459552529, 1.441966068010339, 1.4862598017367157, 1.543994733014782, 1.3454678381383784, 1.2342983447063882, 0.9404664914029148, 1.7090728841661238, 1.6216549134741478, 1.6440246866584938, 1.2389658657264002, 1.7568815352995855, 1.414412852797872, 1.5535693767730856, 1.3490905816381624, 1.2463995713620661, 1.5148892409482362, 1.3035141841962565, 1.105441410582276, 1.382605756783369, 1.6533147148412486, 1.2550352834590368, 1.4685010804332275, 1.4663434605291799, 1.4080787922985027, 1.4447374272576026, 1.7190770741951569, 1.2391735380956923, 1.3264065041031468, 1.374488765378405, 1.1827393856896182, 1.2834643409936006, 1.2346394034742616, 1.3836050596763947, 1.4773243600417352, 1.6490806569317977, 1.5957263322625002, 1.3722894469190712, 1.1719793677449553, 1.3918333861816001, 1.54123394364496, 1.345301547649388, 1.6746908931546385, 1.8329326839679998, 1.2227731687041152, 1.4867525814240243, 1.7193995371170316, 1.1433767595465445, 1.502370196323142, 1.4280199407099097, 1.3997418158163466, 1.4775532068995274, 1.095680522022066, 1.7583420695209113, 1.0835767084040178, 1.3239589601149058, 1.3039487377952135, 1.4846107360214167, 1.5514661673284167, 1.3244607196829625, 1.0471797337482789, 1.6311316152962712, 1.3366752664189263, 1.4662966214614799, 1.2580423735285955, 1.399011190109897, 1.4202379955713083, 1.0010913141582396, 1.3328815483442784, 1.8905756009377193, 1.0428113317631085, 1.1797847304133844, 1.294841432056281, 1.0928184677366068, 1.096778354277086, 0.9670978864236656, 1.4286160626719175, 1.338257273887146, 1.434669271675353, 1.2985333829562775, 1.2981861795898635, 1.613158462270212, 1.4677388636720559, 1.5639542015438435, 1.1204702526210824, 1.2430386167169156, 1.4648498219342934, 1.4771737033542047, 1.3007007366933208, 1.4417566776661401, 1.4901080464896816, 1.3014035128981203, 1.6790755398872232, 0.8221206048229307, 1.2082088368908852, 1.2583316476656206, 1.890414795582437, 1.2819299600285536, 0.990145099197662, 1.2342918552533853, 1.1041401702396765, 1.4061857645156735, 1.1409468062623744, 0.9151133319879553, 1.4037398512826023, 1.4394366348299923, 1.700179884281233, 1.6999300223495688, 1.0582482470780823, 1.3344228889997323, 1.682600875342946, 1.6715223528142178, 1.8695067704728294, 1.6204087517643724, 1.278731178897361, 1.3896140983586074, 1.0519570300592425, 1.5288690950784398, 1.3123147721205684, 1.1704811530927444, 1.4750971613437638, 1.4747151988432667, 1.0671262867094058, 1.9666553575673833, 1.7806324260665567, 1.2719796403553545, 1.268133057080415, 1.9752183709053492, 1.450221193313899, 1.341387236832764, 1.0829405994011225, 1.3476579515333553, 1.2426865234797015, 1.3977263259456902, 1.395797962784913, 1.4629025623831229, 1.4862783516116398, 1.3864248622169437, 1.916363355886101, 1.0305529306815457, 1.2141796775731215, 1.313982893562549, 1.613122695022053, 1.1312101205331169, 1.393751326165855, 1.2910253448950797, 1.2695480544279023, 1.6842467729632444, 1.847223824787159, 1.3879615664818545, 1.615946668504599, 1.7132937791289027, 1.1586472310783356, 1.1462594889076176, 1.3357103368390935, 1.438719602947977, 1.2547457343493928, 1.3985394092864418, 1.594595598725881, 1.2519760472487416, 1.1245195115392728, 1.471772471998611, 1.2998559461121342, 0.9868853270947928, 0.9218778401199934, 1.040580229347318, 1.3973841490359868, 1.336968001742153, 1.2952102223278363, 1.2423877899214828, 1.4250721628080447, 1.7710420955933919, 1.8569581855926451, 1.114176520496425, 1.6375240204350976, 1.7345049384682698, 1.9788711033671975, 1.3687016413558903, 1.282223168338515, 1.251619566574377, 1.5723007029283351, 0.939651855514396, 1.6128999880025394, 1.41424779378476, 1.3014984171925046, 1.2613022670497924, 1.3859077358461651, 1.2903155923541374, 1.556494943969981, 1.5688055345838667, 1.3663131641202992, 1.447169922090935, 1.432102055766054, 1.818993270896333, 1.7174683338792092, 1.4156544244073088, 1.590889831331593, 1.461159860806299, 1.401992925936222, 1.2771579257006433, 1.1754236982212667, 1.227180952776107, 1.6792743693804428, 1.417157843984406, 1.0777743985490802, 0.8712982974336498, 0.9999194580664179, 1.095125919275681, 1.1948775515374528, 0.9047185206842993, 1.568797310469719, 1.3464711346001996, 1.656474488075611, 1.4229739828671994, 1.1805593635628582, 1.294960772216746, 1.3950113887349842, 1.1274771480927355, 1.440456912082584, 1.4333483097064885, 1.229358255878876, 1.1902844932266132, 1.3861615169977304, 1.5202011673417986, 1.2806959570273964, 1.131597911219723, 1.458367033628666, 1.020038544269762, 1.5112619014522597, 1.3446669356377219, 1.1401092074605323, 0.9225516825678569, 1.0393079764190525, 1.66617993474803, 1.390816222327199, 1.3568747317250414, 1.3607001428023981, 1.5001303058265483, 1.4831991251408632, 1.3842633275709806, 0.8424830203336497, 1.2488826098093542, 1.4388334718472133, 1.318521618000952, 1.3507823176731313, 1.619596212438381, 1.488116094182782, 1.424304683033005, 1.3790477884621732, 0.9916140782816069, 1.0535228453042755, 1.0535116148990422, 0.949163162210147, 1.300691843024931, 1.3888620688402007, 1.2168036247884222, 1.3786210352593662, 1.3247124032028859, 1.0742208838744767, 1.2439601064239132, 1.7935164450618386, 1.213159978931234, 1.3914849536572116, 1.8409898802450022, 1.5293956690786126, 1.2841530135775376, 1.4952140691797051, 1.6548847644307736, 1.4562036785030197, 1.1312970800066977, 1.2264125774370438, 1.2106402441992012, 1.2737434843274458, 1.5459253357002862, 1.2626409499051285, 0.8954074360967204, 1.393499547376222, 1.1938974267925078, 1.1665021960572934, 1.531073046469496, 1.3324342386473655, 1.1057179982674448, 1.3742857655583443, 1.7356136148337267, 1.157933930467735, 1.5480264695194046, 1.1411604804324542, 1.4539735950664778, 1.3142038108430545, 1.140696404767909, 1.4892579708141302, 1.7872594381693299, 1.4943941591586403, 1.3117667782381983, 1.2693692218890835, 1.408753759960044, 1.4288269204786923, 1.271221335570759, 1.620977466123189, 1.4849878490008732, 1.2780687553240873, 2.045329982387295, 1.2828374112583874, 1.455550928856621, 1.2595244557853547, 1.6432087149854768, 1.3205250835240252, 1.709847317689943, 1.3948839052139614, 1.5321300570444132, 1.433975831611318, 2.0113060873112136, 1.5012769727925195, 1.234432167375708, 1.627808974245965, 1.2543446649093282, 1.4215274221269907, 1.2543062391567235, 1.2039603740856637, 1.281579904746475, 1.4645814432041315, 1.5105909867071492, 1.649657381935622, 1.5368813991762855, 1.3945621739355907, 1.2660075918858287, 1.3130245384554033, 1.8774238058382529, 1.574397521955037, 1.3682917937948387, 1.5779406170720514, 1.308360197532086, 1.2925242910847063, 1.438606658563732, 1.604336752346726, 1.371766221470008, 1.3745370882642263, 1.037865151442638, 1.0352326977034707, 1.2570323743310383, 1.2188516195033479, 1.1831359132609345, 1.2313462019942134, 1.7882824733368596, 1.6514325448576825, 1.5679407402094847, 1.5097000599035728, 1.5098231593237343, 1.4882161447807458, 1.689688997339709, 1.6627429254332253, 1.1806976511316831, 1.0305790656566698, 1.245837950132799, 1.7834478344585734, 1.608180524429401, 1.2734002298875737, 1.1663674431931175, 1.561467521242504, 1.1838443695163465, 1.7340758384008592, 1.8587072420825563, 1.5530752886038957, 1.3437843027284275, 1.5706202187314746, 1.8407002252967797, 1.7135570551201682, 1.5044016959487605, 1.3379374658549623, 1.2079148208750814, 1.3698838988623334, 1.2068218231807435, 0.9395096115365945, 1.5360247074965427, 1.4340484268154798, 0.9831036844669683, 1.216219224228738, 1.2342898166371434, 1.6400512027178937, 1.6303896102911721, 1.65873938415545, 0.9542606931010252, 1.4452610794593896, 1.4665596142471675, 1.5514571724742168, 1.353949318269774, 1.2966701029783496, 1.3488389360073494, 1.4411556065059479, 1.4181429014962923, 1.315157440139053, 0.9973147733235197, 1.6487154010246097, 1.2205400642608173, 1.676671673179828, 1.4516903271704664, 1.3840889028747225, 1.6964287016867297, 1.225898917309495, 2.023040998947276, 0.9904227790561944, 1.3774287442548057, 1.2863020678334456, 1.2200000742199204, 1.0842959981060478, 1.2704980474793752, 1.4412251962492162, 1.2210557956564814, 1.278901739952369, 1.697365276987533, 1.408738332436668, 1.6664796313590517, 1.3037773287963805, 1.3867919388220458, 1.0364104825577294, 1.1358577803991885, 1.414622699397211, 1.6578316726841889, 1.5443846219452624, 1.2372021031191973, 1.7618531100442583, 1.4819628206312228, 1.3921748952493005, 1.3059624217936772, 1.1802036874737702, 1.6566924497663413, 1.1330245776942272, 1.2681960163650687, 1.7065136010116424, 1.3322136884815954, 1.7028457447450795, 1.090211572012372, 1.2265477524165858, 1.385988650120393, 1.4132799060545609, 1.7412169145834313, 1.3959999752143282, 1.3364902494982513, 1.92951307097602, 1.2011389605017735, 1.7260439944960555, 1.4055192443606466, 1.467548732155666, 1.2937847349899498, 1.1013246691623226, 1.186449407769291, 1.6151982592706453, 1.7920390046996466, 1.5142878351489737, 0.9836813747841368, 1.091253134258208, 1.5978304645350025, 1.3783667705588063, 1.132467605552171, 1.4834215782961604, 1.608716149737756, 1.1970651198107223, 1.1013306829551899, 1.3531768974995217, 1.4380085112524374, 1.141740308962004, 1.456164787994105, 1.5744107214727512, 1.8291569152013714, 1.1762381653624205, 1.1297353857520147, 1.806647266074175, 1.171014984306036, 1.2697608809676872, 1.4670078569315148, 1.3795569001690748, 1.5546865086425365, 1.4370514426577086, 1.5231437987162404, 1.5724335722770773, 1.243768281393218, 1.4528680704299126, 1.3640472105006667, 1.2721995340616137, 1.2484430507278612, 1.400400240044458, 1.4949629146880095, 1.2587819269670393, 1.316173733376513, 1.33622150134143, 1.313326852544006, 1.7555354546646156, 1.473299967884141, 1.5733997427455544, 1.4848334885578964, 1.3252859908212655, 1.9278530171746062, 1.0851210334705925, 1.5236880991414288, 1.173248235430905, 1.2165302516546779, 1.4356701248184955, 1.2397466932058934, 1.6094844733595182, 1.2907126385753354, 1.2964103135261893, 1.1107597214774978, 1.7426769818253363, 1.230205295256041, 1.2871882117963784, 1.2362000059765257, 1.3517449797688124, 1.3230346914880289, 1.1033587617366076, 1.1948297048982672, 1.1303744006353666, 1.2786819887777936, 1.534651303365334, 1.865850555856419, 1.3931175252758332, 1.3294883518576686, 1.162352624094343, 1.0723789860175337, 1.7815535717200237, 1.7216513240737787, 1.3970055911590302, 1.3499334696719383, 1.5433757906913983, 1.5201141448505153, 1.5893042158421942, 1.210446548233965, 1.8255413826232354, 1.4446195156026334, 1.6688073131021866, 1.8486256257038, 1.537624462008012, 1.7344815155169122, 1.8112828730493493, 1.357433762215509, 1.1091746646604175, 1.438451868152496, 1.6398493136175898, 1.2487687875029976, 1.5398413495690055, 1.5079266913076401, 1.4110057261407094, 1.4287941522073644, 1.3395840810934403, 1.3449041054449904, 1.5943873944590776, 1.2815196682846872, 1.5493036833426208, 1.5589620247416052, 1.164229271538482, 1.2280287827799978, 1.5347480765192298, 1.5417862294044529, 1.7195841102670537, 1.427871005357695, 1.3278437067660653, 1.5593427804335394, 1.616044937879936, 1.6323209742954061, 1.4815132503136312, 1.2064851581323752, 1.4962605615890503, 1.6691635665269797, 1.1740647032783165, 1.3403793638004375, 0.9897815892290683, 1.2979079617320823, 1.2995485372668036, 1.3618407625121323, 1.1649606268334427, 1.585590228304242, 1.6061693329153022, 1.4232514921621624, 1.124901910303844, 1.282449627158863, 1.187253042843675, 1.164445291535431, 1.2080557468586481, 1.4152084925519932, 1.2418398584843373, 1.5195904196723227, 1.662110904807554, 1.922051971231572, 1.4214856298357075, 1.5599509130558815, 1.357724671228317, 1.2330551234681137, 1.078891369732638, 1.3245370468010162, 0.9230954166581384, 1.5337417188750568, 1.629689723118229, 0.9883579640665036, 1.5261608269736655, 1.3979562536040953, 0.9969878463580069, 1.4809778429880678, 1.0106352539563443, 1.5399738789670752, 1.1503400181816574, 1.6563751549052639, 1.2106118289355376, 1.2912159709264057, 0.9986728509286585, 1.5691710019607328, 1.9500678603161543, 1.2493426812828798, 1.1273533024323172, 1.4818878183087518, 1.278812782655204, 1.3910029801181272, 1.0713930787983612, 1.6191096660112272, 1.8759189162660699, 1.3996735753193068, 1.2475884378610114, 2.069006649927757, 1.4770641912023157, 1.2538961507781508, 1.306312181770143, 1.3548901816130465, 1.2624723456471145, 1.543959829578501, 1.6785641187515756, 1.1603726926502596, 1.1897686184823602, 1.4860273947108595, 1.2993830025194684, 1.1990032727078408, 1.1359245558352231, 1.1126303227184948, 1.329593589853905, 1.7844177252324824, 1.4045845767445064, 1.3247681836970426, 1.5074876618882709, 1.6504299816427515, 1.1598046047893258, 1.6993727496256552, 1.4064210288766428, 1.6209337030922, 1.4125242373766538, 1.3447581872770478, 1.3800795002932964, 0.9500531403556771, 1.6705935256166806, 1.2604836485455053, 1.6872947643370473, 1.340730899200265, 1.1258130844938177, 1.3789460541443792, 1.807763858655991, 1.6253461926134893, 1.2283761570123037, 1.3766970179954932, 1.6413721630519325, 1.9555241718579708, 1.4444867134480226, 1.954798957916556, 0.9850737853023406, 1.4423957815661665, 1.4990291540803031, 1.4695526321685144, 1.2733716335997152, 1.4598820084728819, 1.3693521921322487, 1.5909289265471904, 2.0150726341538334, 1.6604547561644292, 1.3237645907102196, 1.7414019838186572, 1.34266720366655, 1.4064335381032809, 1.1822988252793456, 1.3019856024004588, 1.9712836175011705, 1.319814765989124, 1.5822918439275113, 1.5807010577061524, 1.736480582954949, 1.2447141509259005, 1.2044909077572905, 1.4849104379263025, 1.3663155756041794, 2.117601225696033, 1.6027836995044724, 1.3120208665252477, 1.4683610256106203, 1.6769298707117937, 1.1170690376862877, 1.2121450174924946, 1.758874085319211, 1.7348274123892309, 1.1694456633719053, 1.309358577045728, 1.6609906439980227, 1.5168474242941496, 1.4233636402280652, 1.9971192090551873, 1.3138441927734446, 1.784290896048637, 1.4639339637421032, 0.9351437431022535, 1.2670550249576613, 1.330168234524034, 1.2808300035411877, 1.2450735595841613, 1.2850055893864192, 0.8676258673245415, 1.8636958820460632, 1.5468825767611039, 1.4147358969371266, 1.577514614647483, 1.392540499150099, 1.3292325282040367, 1.311328762778361, 1.6257655519771945, 1.147747066620132, 1.5638224317591007, 1.5500881529879647, 1.364315756439897, 1.5992671397283873, 1.406903062760278, 1.416515669105528, 1.4598330193695896, 2.0565574870304415, 1.1518141085481024, 1.2728216029247037, 1.5285746207013347, 1.006009211829932, 1.2638309613006895, 1.1264622281381078, 1.4314543307144385, 1.191791552217214, 1.8081794141008332, 1.3427935123560717, 1.6509872372154075, 1.4705728255008645, 1.3743297613728251, 1.6599212956942986, 1.4195425945680202, 1.0633982576718735, 1.719780331136735, 1.3150522299823246, 1.4403691071758458, 1.3585109093675296, 1.5341164191921235, 1.3401390438667697, 1.434505855485407, 1.280298027632142, 1.652267617600627, 1.7548299699214451, 1.1041369533727028, 1.2504286830197815, 1.2164673200356837, 0.9493364072835667, 1.9185181992145277, 1.2820082515458702, 1.235040341177493, 1.2704656768148193, 1.3967892645568387, 1.1304194183041278, 1.3220493253399415, 1.3044747408086412, 0.9474566381151878, 1.9323891353742724, 1.7423303210445025, 1.453707883638493, 1.0473536690550629, 1.0505184180128586, 1.401247867321639, 1.1879293223986913, 1.18772901828844, 1.198559940142302, 1.447275518482796, 1.0886632272089092, 1.5610341649322317, 1.3206409852804182, 1.2420626935168464, 1.3781780381574076, 1.1589547288120674, 1.49201797554835, 1.119551572742891, 1.2893878612275969, 1.3354850006257, 1.2373497842576548, 1.230957272606146, 1.3698015955238843, 1.322148295465481, 1.8250947646897324, 1.4278275719388296, 1.375954231776363, 1.77801918292762, 1.7137051969653112, 1.5658247966554202, 1.3997170690184806, 1.0501098811551868, 1.449794189772609, 1.4710663564865771, 1.2985655974698702, 1.5827645514490851, 1.2766927748357115, 1.2095948441528332, 1.43939908636559, 1.1982654701948632, 1.3578004051740387, 1.171774637059795, 1.4873869514920781, 1.9273250795148829, 1.8312080223154286, 1.7414527976170964, 1.4534851334830032, 1.6268316135567957, 1.2311551407688188, 1.4556592807750053, 1.5336046112700283, 1.7975830758193083, 1.809270622756646, 1.6551494744161805, 1.6339101996322243, 1.0014230657365897, 1.6684525275481141, 1.467640093234403, 2.118493938395692, 1.814349186652599, 1.4131005036243818, 1.1324179670061882, 1.2185197074910639, 1.507525153733677, 1.299295541647191, 1.0858087251839614, 1.2842009994839063, 1.6497292820506004, 0.9701480678032779, 1.4329284797130564, 1.2453923396498017, 1.3011885796913176, 1.4252785754595834, 1.939786226024293, 1.1043326620047773, 1.2961709031231905, 1.5077529524380546, 1.6425378290228467, 1.4902941979175341, 1.3756130535126987, 1.214819305132129, 1.8701073101136998, 1.1477896500786169, 1.5534381587492079, 1.3540837584613434, 1.6190142858981167, 1.1983905263779064, 0.8513070604940902, 1.5006519195502446, 1.1390691081402613, 1.5362645262852168, 1.7028336127869372, 1.1108966904777253, 1.1862281930601473, 1.0755860084678133, 1.1234500330742199, 1.1055057065312102, 1.5472803893993274, 1.4822277268471347, 0.9760150556451959]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spike_statistics_files/figure-html/cell-23-output-2.png" width="575" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
