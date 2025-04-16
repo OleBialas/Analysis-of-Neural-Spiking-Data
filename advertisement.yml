@@ -1,0 +1,43 @@
+title: Analysis of Neural Spiking Activity in Python
+course:
+  id: spiking
+  weight: 90
+  title: "Analysis of Neural Spiking Activity in Python"
+  language: English
+  location:
+    type: Online
+    address: Zoom (Meeting Link After Registration)
+  category: neuroscience
+  tags:
+    - Neural Spiking
+    - Statistics
+    - Spike Sorting
+    - Elephant
+    - SpikeInterface
+  length_hours: 18
+  short_description: 
+    A workshop on analyzing and simulating neural spiking data
+  description:
+    How can we measure and quantify the spiking activity of neurons, and what statistical patterns should we expect?
+    This workshop delves into these questions using both simulated data and real-world electrophysiological recordings.
+    You will explore simulating neurons as Poisson processes and analyze their statistical properties using advanced methods like Unitary Event Analysis (UEA) and Spike Pattern Detection and Evaluation (SPADE) with the Electrophysiology Analysis Toolkit (Elephant).
+    Additionally, you will practice detecting spikes in extracellular recordings and relating them to stimulus events through peri-stimulus time histograms (PSTHs) and receptive field models, leveraging Python's core scientific libraries (NumPy, SciPy, Pandas).
+    You will also explore spike sorting techniques, practicing how to assign detected spikes to individual neurons by extracting features with principal component analysis (PCA) and clustering them with Gaussian mixture models using scikit-learn.
+    Finally, you will assemble these steps into an automated analysis pipeline with SpikeInterface.
+  topics:
+    - "Statistical properties of neurons: Simulating Poisson neurons and applying Unitary Event Analysis (UEA) and Spike Pattern Detection and Evaluation with Elephant"
+    - "Relating neural activity to stimuli: Detecting spikes in electrophysiological recordings and computing peri-stimulus time histograms and receptive fields with NumPy, SciPy and Pandas"
+    - "Identifying single neurons: Feature extraction with principle component analysis (PCA) and clustering with Gaussian mixture models in sklearn and building a spike sorting pipeline in SpikeInterface"
+  prerequisites:
+    - Familiar with Topics Covered in Essential Computer Tools for Researchers
+    - Familiar with Topics Covered in Intro to Python for Scientists
+    - Completely New to Python and Coding? Take all three courses in the same week as a 5-Day mega workshop!
+  requirements:
+    - zoom
+    - vscode
+    - conda
+  certification: 
+    Students who attend at least 75% of the course will receive a participation certificate by email at the end of the course.
+
+
+

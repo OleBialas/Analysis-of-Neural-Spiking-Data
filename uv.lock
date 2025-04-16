@@ -4,7 +4,8 @@ requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version < '3.11'",
     "python_full_version == '3.11.*'",
-    "python_full_version >= '3.12'",
+    "python_full_version >= '3.13'",
+    "python_full_version == '3.12.*'",
 ]
 
 [[package]]
@@ -132,6 +133,8 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "seaborn" },
+    { name = "spikeinterface", version = "0.102.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "spikeinterface", version = "0.102.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "viziphant" },
 ]
 
@@ -154,6 +157,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.6.1" },
     { name = "scipy", specifier = ">=1.15.2" },
     { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "spikeinterface", specifier = ">=0.102.0" },
     { name = "viziphant", specifier = ">=0.4.0" },
 ]
 
@@ -2148,6 +2152,19 @@ wheels = [
 ]
 
 [[package]]
+name = "probeinterface"
+version = "0.2.26"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/89/ebf3ed05893240bb66909e1e7f87bbd99c10ce898e13290ce9a95c693c09/probeinterface-0.2.26.tar.gz", hash = "sha256:f47b07f6352aa956632ed0c250ac364de446dc44b2234145ca69a00a99ebf8b8", size = 48340 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/48/a8ca8b829eec88dc1e725214c8b0288b13084924f87e064db477f9d115bd/probeinterface-0.2.26-py3-none-any.whl", hash = "sha256:b552bc262604c131de8dc833f8c589b0ad87a3845ae688abb7603a08e653de30", size = 49495 },
+]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.50"
 source = { registry = "https://pypi.org/simple" }
@@ -2997,6 +3014,50 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050 },
+]
+
+[[package]]
+name = "spikeinterface"
+version = "0.102.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13'",
+]
+dependencies = [
+    { name = "neo", marker = "python_full_version >= '3.13'" },
+    { name = "numpy", marker = "python_full_version >= '3.13'" },
+    { name = "packaging", marker = "python_full_version >= '3.13'" },
+    { name = "probeinterface", marker = "python_full_version >= '3.13'" },
+    { name = "threadpoolctl", marker = "python_full_version >= '3.13'" },
+    { name = "tqdm", marker = "python_full_version >= '3.13'" },
+    { name = "zarr", marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/39/ff8d4a31c5d8dc452760f3964664795394984f180285c57a719f78671300/spikeinterface-0.102.0.tar.gz", hash = "sha256:1241c99518259895b290588045caa243cce5a8d57da24638db235ff5c9f5c604", size = 761595 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/e7/c918e0d3a7014b85b487197f726a1573128090c4ddde1f13f1f275a3128d/spikeinterface-0.102.0-py3-none-any.whl", hash = "sha256:552952e4af1ddb9c376de71fa530bd9702175ab7d6156c98b842ceafe5cd64f8", size = 963203 },
+]
+
+[[package]]
+name = "spikeinterface"
+version = "0.102.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.12.*'",
+]
+dependencies = [
+    { name = "neo", marker = "python_full_version < '3.13'" },
+    { name = "numpy", marker = "python_full_version < '3.13'" },
+    { name = "packaging", marker = "python_full_version < '3.13'" },
+    { name = "probeinterface", marker = "python_full_version < '3.13'" },
+    { name = "threadpoolctl", marker = "python_full_version < '3.13'" },
+    { name = "tqdm", marker = "python_full_version < '3.13'" },
+    { name = "zarr", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/46/68/e12c782324240d8ad2423e0843e57160683d79e4a96e3326c11bb4a0ec49/spikeinterface-0.102.2.tar.gz", hash = "sha256:241035d497c0d334f083fce5b62cdec17d9295ae114c76763033e6001d70508a", size = 783594 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/0c/5c4a969988c3f3e8e8449495fd1d0a66741ccf1f37340e4aee50ba0e3bdb/spikeinterface-0.102.2-py3-none-any.whl", hash = "sha256:32a32274e7415fad44e2b0441cbda5c8d7dbfe2516c382c659276956ff7944d3", size = 990637 },
 ]
 
 [[package]]

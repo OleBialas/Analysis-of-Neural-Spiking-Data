@@ -1,0 +1,208 @@
+---
+title: "Measuring the Correlation of Spike Trains"
+engine: Jupyter
+format: html
+number-sections: true
+number-depth: 2
+---
+
+```{python}
+import numpy as np
+from matplotlib import pyplot as plt
+import quantities as pq
+from neo.core import AnalogSignal
+from elephant.spike_train_generation import StationaryPoissonProcess, NonStationaryPoissonProcess
+from elephant.conversion import BinnedSpikeTrain
+from elephant.spike_train_correlation import covariance, correlation_coefficient, cross_correlation_histogram
+from viziphant.spike_train_correlation import plot_cross_correlation_histogram
+np.random.seed(100)
+%matplotlib inline
+```
+
+
+```{python}
+def simulate_oscillating_neuron(
+    amplitude,
+    frequency,
+    t_stop,
+    t_start=0 * pq.s,
+    sampling_rate=1000 * pq.Hz,
+    phase_shift=0 * np.pi,
+):
+    """
+    Simulate a neuron as a Poisson process with a firing rate that is modulated by a sinusoidal.
+    Arguments:
+        amplitude (pq.Quantity): amplitude of the sinusiodal.
+        frequency (pq.Quantity): frequency of the sinusoidal.
+        t_stop (pq.Quantity): end time of the simulated neuron's spike train(s).
+        t_start (pq.Quantity): start time, defaults to 0*pq.s.
+        sampling_rate (pq.Quantity): sampling rate of the sinusoidal, defaults to 1 kHz.
+        phase_shift (float): phase_shift of the sinusoidal, defaults to 0.
+    Returns:
+        (NonStationaryPoissonProcess): simulated neuron with an oscillating firing rate
+    """
+    n_samples = int((t_stop - t_start) * sampling_rate)
+    t = np.linspace(t_start, t_stop, n_samples)
+    signal = amplitude * np.sin(2 * np.pi * frequency * t + phase_shift)
+    signal += amplitude
+    rate_signal = AnalogSignal(
+        signal=signal,
+        sampling_rate=sampling_rate,
+        t_start=t_start,
+        t_stop=t_stop,
+    )
+    return NonStationaryPoissonProcess(rate_signal=rate_signal)
+
+
+def simulate_firing_neuron(
+    event_times,
+    t_stop,
+    modulation_amplitude,
+    delay=0 * pq.s,
+    base_rate=1 * pq.Hz,
+    t_start=0 * pq.s,
+    sampling_rate=1000 * pq.Hz,
+):
+    """
+    Simulate a neuron as a Poisson process with a firing rate that is modulated by individual events.
+    Arguments:
+        event_times (pq.Quantity): timing of the events that the simulated neuron responds to
+        t_stop (pq.Quantity): end time of the simulated neuron's spike train(s).
+        modulation_amplitude (pq.Quantity): amplitude of the modulation of the neuron's firing rate in response to the stimulus.
+        delay (pq.Quantity): delay between the `event_times` and the firing rate modulation (defaults to 0 s).
+        base_rate (pq.Quantity): baseline firing rate (defaults to 1 Hz).
+        t_start (pq.Quantity): start time, defaults to 0*pq.s.
+        sampling_rate (pq.Quantity): sampling rate of the sinusoidal, defaults to 1 kHz.
+    Returns:
+        (NonStationaryPoissonProcess): simulated neuron with an oscillating firing rate
+    """
+    from scipy.signal import windows, convolve
+
+    event_times = np.asarray(event_times)
+    if (event_times < t_start).any() or (event_times > t_stop).any():
+        raise ValueError("Events lie outside the defined time range")
+    event_times += delay
+    n_samples = int((t_stop - t_start) * sampling_rate)
+    t = np.linspace(t_start, t_stop, n_samples)
+    event_series = np.zeros(t.size)
+    idx = np.searchsorted(t, event_times, side="left")
+    event_series[idx] = 1
+    kernel = windows.gaussian(M=1000, std=100)
+    kernel /= np.sum(kernel)
+    signal = convolve(event_series, kernel, mode="same") * pq.Hz
+    signal = (signal / signal.max()) * modulation_amplitude
+    signal = signal + base_rate
+    signal += np.abs(signal.min()) # ensure no values are negative
+    print(signal.min())
+    rate_signal = AnalogSignal(
+        signal=signal,
+        sampling_rate=sampling_rate,
+        t_start=t_start,
+        t_stop=t_stop,
+    )
+    return NonStationaryPoissonProcess(rate_signal=rate_signal)
+```
+
+## Covariance and Correlation of Spike Trains
+
+:::{#exr-}
+Simulate a StationaryPoissonProcess with a rate of 10 Hz and a duration of 10 s and assign it to a variable `neuron1`. Generate 1000 spike trains from this process and assign them to a variable sts1. Then, convert them to a `BinnedSpiketrain` with a `bin_size` of 5 ms.
+:::
+
+```{python}
+neuron1 = StationaryPoissonProcess(rate=10*pq.Hz, t_stop=10.0*pq.s)
+sts1 = neuron1.generate_n_spiketrains(20)
+sts1 = BinnedSpikeTrain(sts1, bin_size=5*pq.ms)
+```
+
+:::{#exr-}
+Compute the covariance matrix for the list of binned spike trains and plot it using `imshow`.
+:::
+
+```{python}
+cov_matrix = covariance(sts1)
+plt.imshow(cov_matrix)
+```
+
+:::{#exr-}
+Compute the correlation matrix for the list of binned spike trains and plot it using `imshow`.
+:::
+
+```{python}
+corr_matrix = correlation_coefficient(sts1)
+plt.imshow(corr_matrix)
+print(corr_matrix.mean())
+```
+
+:::{#exr-}
+Simulate 20 spike trains from a non-stationary Poisson Process
+:::
+
+```{python}
+neuron2 = simulate_oscillating_neuron(amplitude=20*pq.Hz, frequency=0.5*pq.Hz, t_stop=5*pq.s)
+sts2 = neuron2.generate_n_spiketrains(10)
+neuron3 = simulate_oscillating_neuron(amplitude=20*pq.Hz, frequency=0.5*pq.Hz, t_stop=5*pq.s, phase_shift=np.pi)
+sts3 = neuron3.generate_n_spiketrains(10)
+sts4 = sts2+sts3
+sts2 = BinnedSpikeTrain(sts4, bin_size=5*pq.ms)
+```
+
+:::{#exr-}
+Plot the covariance and correlation matrix of the spike trains
+:::
+
+```{python}
+fig, ax = plt.subplots(1, 2)
+cov_matrix = covariance(sts2)
+ax[0].imshow(cov_matrix)
+corr_matrix = correlation_coefficient(sts2)
+ax[1].imshow(corr_matrix)
+print(corr_matrix.mean())
+```
+
+## Cross-Correlation of Spike Trains
+
+:::{#exr-}
+Simulate two spike trains from a Poisson neuron and bin them with a bin size of 5 ms
+:::
+
+```{python}
+neuron4 = StationaryPoissonProcess(rate=10*pq.Hz, t_stop=10.0*pq.s)
+sts4_i = BinnedSpikeTrain(neuron4.generate_spiketrain(), bin_size=5*pq.ms)
+sts4_j = BinnedSpikeTrain(neuron4.generate_spiketrain(), bin_size=5*pq.ms)
+```
+
+:::{#exr-}
+Compute and plot their cross-correlation histogram
+:::
+
+```{python}
+cc_hist = cross_correlation_histogram(sts4_i, sts4_j, window=[-20, 20])
+plot_cross_correlation_histogram(cc_hist[0])
+```
+
+:::{#exr-}
+Simulate spike trains from a neuron that responds to events. Generate a spike train from that neuron and plot the spikes along with the neuron's `rate_signal`.
+:::
+
+```{python}
+event_times = np.arange(0, 50, 2.5)
+neuron5 = simulate_firing_neuron(
+    event_times=event_times,
+    t_stop=55 * pq.s,
+    modulation_amplitude=10 * pq.Hz,
+    base_rate=0 * pq.Hz,
+)
+st5 = neuron5.generate_spiketrain()
+fig, ax = plt.subplots(2, sharex=True)
+ax[0].plot(neuron5.rate_signal.times, neuron5.rate_signal)
+ax[1].eventplot(st5.times)
+ax[1].set(xlabel="Time [s]", xlim=(0, 50))
+```
+
+```{python}
+sts5_i = BinnedSpikeTrain(neuron5.generate_spiketrain(), bin_size=5*pq.ms)
+sts5_j = BinnedSpikeTrain(neuron5.generate_spiketrain(), bin_size=5*pq.ms)
+cc_hist = cross_correlation_histogram(sts5_i, sts5_j, window=[-20, 20])
+plot_cross_correlation_histogram(cc_hist[0])
+```
