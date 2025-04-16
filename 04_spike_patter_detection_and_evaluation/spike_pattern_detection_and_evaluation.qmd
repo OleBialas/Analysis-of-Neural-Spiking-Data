@@ -1,0 +1,77 @@
+---
+title: "Spike Pattern Detection and Evaluation"
+engine: Jupyter
+format: html
+number-sections: true
+number-depth: 2
+---
+
+```{python}
+import numpy as np
+from matplotlib import pyplot as plt
+import quantities as pq
+from elephant.spike_train_generation import compound_poisson_process, StationaryPoissonProcess
+from elephant.spade import spade
+from viziphant.patterns import plot_patterns
+np.random.seed(4542)
+%matplotlib inline
+```
+
+Simulate 10 neurons using the `compount_poisson_process` such that the probability of all 10 neurons firing together is 2% and the probability of only a single neuron firing is 98%
+
+```{python}
+probabilities = [0, 0.98, 0, 0, 0, 0, 0, 0, 0, 0, 0.02]
+spiketrains = compound_poisson_process(
+    rate=5 * pq.Hz,
+    amplitude_distribution=probabilities,
+    t_stop=10 * pq.s,
+)
+len(spiketrains)
+```
+
+Visualize the simulated spike trains
+
+```{python}
+plt.eventplot([st.times for st in spiketrains])
+```
+
+Add 90 purely random spike trains
+```{python}
+for i in range(90):
+    spiketrains.append(
+        StationaryPoissonProcess(rate=5 * pq.Hz, t_stop=10 * pq.s).generate_spiketrain()
+    )
+```
+
+Run SPADE on the simulated data. The spikes will be discretised in 1ms bins and the algorithm will only search for since `winlen=1`. Only intervals with a minimum of `3` synchronous spikes are considered. The observed statistic is compared against 100 surrograte datasets with 5 ms jitter.
+
+```{python}
+results = spade(
+    spiketrains=spiketrains,
+    binsize=1 * pq.ms,
+    winlen=1,
+    min_spikes=3,
+    n_surr=100,
+    dither=5 * pq.ms,
+)
+```
+
+SPADE returns a dictionary of patterns. Here we can see the pattern that we created in the data. There is a significant pattern that involves the first 10 neurons and that occurrs 7 times, with 0 lag. The p-value is given as 0, but that is not technically correct.
+
+```{python}
+print(f'neurons: {results["patterns"][0]["neurons"]}')
+print(f'times: {results["patterns"][0]["times"]}')
+print(f'lags: {results["patterns"][0]["lags"]}')
+print(f'pvalue: {results["patterns"][0]["pvalue"]}')
+```
+
+SPADE computes the p-value based on the surrograte data by checking how often a equally or more complex pattern appears when jittering the event times. A p-value of 0 indicates that this never happened. However, it might have happened had we generated more surrogates so we can only say that in our analysis p is smaller than `1/n_surr`. The `"pvalue_spectrum"` computed by SPADE indicates that the p-value for pattern of 3 neurons occurring 2 times in 0.32 and the p-values of a pattern of 4 neurons ocurring 2 times is 0.01. Anything below that can't be measured because it did not ocurr in the surrograte data
+
+```{python}
+print(results["pvalue_spectrum"])
+```
+
+Using viziphant, we can visualize the patterns SPADE detected
+```{python}
+plot_patterns(spiketrains, results["patterns"])
+```
